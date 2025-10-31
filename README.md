@@ -11,8 +11,8 @@ Find cybersecurity research paper that discusses a “network” security soluti
 ## Demonstration Diagram
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│              Attack Traffic                       │
+┌──────────────────────────────────────────┐
+│              Attack Traffic              │
 └────────────────────┬─────────────────────┘
                      │
          ┌───────────┴───────────┐
