@@ -1,0 +1,28 @@
+# Only BASIC SQL injection rules - will miss obfuscated attacks
+
+# Classic patterns only
+alert tcp any any -> any 80 (
+    msg:"SQL Injection - Classic UNION SELECT";
+    flow:to_server,established;
+    content:"UNION"; nocase; http_uri;
+    content:"SELECT"; nocase; http_uri;
+    sid:1000001; rev:1;
+)
+
+alert tcp any any -> any 80 (
+    msg:"SQL Injection - Classic OR 1=1";
+    flow:to_server,established;
+    content:"OR"; nocase; http_uri;
+    content:"1=1"; nocase; http_uri;
+    sid:1000002; rev:1;
+)
+
+alert tcp any any -> any 80 (
+    msg:"SQL Injection - DROP TABLE";
+    flow:to_server,established;
+    content:"DROP"; nocase; http_uri;
+    content:"TABLE"; nocase; http_uri;
+    sid:1000003; rev:1;
+)
+
+# That's it! Simple rules that can be evaded
