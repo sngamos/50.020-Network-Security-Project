@@ -5,7 +5,7 @@ Find cybersecurity research paper that discusses a “network” security soluti
 
 ## Paper Selected
 - [A comparative analysis of Network Intrusion Detection (NID) using ArtificialIntelligence techniques for increase network security](https://ijsra.net/sites/default/files/IJSRA-2024-2664.pdf)
-    - offline pdf [here](IJSRA-2024-2664.pdf)
+    - [Offline pdf paper here](docs/IJSRA-2024-2664.pdf)
 
 
 ## Demonstration Diagram

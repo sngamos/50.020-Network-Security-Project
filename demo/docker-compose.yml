@@ -1,0 +1,61 @@
+# docker-compose.yml- for snort based IDS vs ML-based IDS comparison demo
+version: '3.8'
+
+services:
+  # Vulnerable web application
+  vulnerable-web:
+    image: vulnerables/web-dvwa
+    ports:
+      - "80:80"
+    networks:
+      ids-demo-net:
+        ipv4_address: 172.20.0.10
+    container_name: target-server
+
+  # Snort IDS (Traditional)
+  snort-ids:
+    image: ciscotalos/snort3  # Or build custom image below
+    container_name: traditional-ids
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./snort-config:/etc/snort
+      - ./snort-rules:/etc/snort/rules
+      - ./snort-logs:/var/log/snort
+    command: -i eth0 -c /etc/snort/snort.conf -A full -l /var/log/snort
+
+  # ML-Based IDS
+  ml-ids:
+    build: ./ml-ids
+    container_name: ml-based-ids
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./model:/app/model
+      - ./ml-logs:/app/logs
+    environment:
+      - INTERFACE=eth0
+    depends_on:
+      - vulnerable-web
+
+  # Lightweight Dashboard
+  dashboard:
+    build: ./dashboard
+    container_name: comparison-dashboard
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./snort-logs:/data/traditional
+      - ./ml-logs:/data/ml
+    networks:
+      - ids-demo-net
+
+networks:
+  ids-demo-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
