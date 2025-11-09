@@ -2,3 +2,5 @@ requests
 numpy
 scapy
 scikit-learn
+pandas
+imbalanced-learn
