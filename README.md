@@ -82,3 +82,53 @@ Find cybersecurity research paper that discusses a “network” security soluti
     Recall:    0.9044405844037275
     F1 Score:  0.8860424996997219
     ```
+
+## Setup Instructions for Demonstration Environment
+### Prerequisites
+1. Docker installed on you machine, along with Docker Compose.
+2. We tested this setup on a x86_64 ubuntu 20.04 virtual box VM.
+    - We used the ubuntu 20.04 image provided by SEED-Labs for simplicity.
+    - Ensure that you do a `sudo apt update && sudo apt upgrade -y` after setting up the VM to get the latest packages.
+
+### Setting up Docker Containers
+1. Follow the instructions as follows:
+    - ```
+        # Clone the repository
+        git clone https://github.com/sngamos/50.020-Network-Security-Project.git
+
+        # Change directory to the project folder
+        cd 50.020-Network-Security-Project/demo
+
+        # Stop all containers
+        docker-compose down
+
+        # Remove any orphaned containers
+        docker-compose down --remove-orphans
+
+        # Rebuild all containers (forces rebuild even if no changes detected)
+        docker-compose build --no-cache
+
+        # Start all containers in detached mode
+        docker-compose up -d
+
+        # Follow logs to see startup progress
+        docker-compose logs -f
+
+        # Check status of containers
+        docker-compose ps -a
+        ```
+2. If everything was setup correctly you should see this something similar to this output:
+    - ```
+        Name              Command         State                    Ports                  
+        --------------------------------------------------------------------------------------
+        ids_dashboard   python dashboard.py   Up      0.0.0.0:8080->8080/tcp,:::8080->8080/tcp
+        ml_ids          /start.sh             Up      0.0.0.0:8082->80/tcp,:::8082->80/tcp    
+        suricata_ids    /start.sh             Up      0.0.0.0:8081->80/tcp,:::8081->80/tcp    
+        ```
+    - ![correct-setup-image](images/correct-setup.png)
+    - The ids dashboard is running on port 8080, Suricata IDS on port 8081 and ML-IDS on port 8082.
+
+### Accessing the Dashboard
+1. Open a web browser and navigate to `http://localhost:8080`.
+2. You should see the dashboard:
+    - ![dashboard-landing](images/dashboard-landing.png)

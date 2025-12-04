@@ -382,6 +382,157 @@ class ComprehensiveAttackSuite:
         self.results['http_flood'] = {'total': 200, 'success': success, 'time': elapsed}
     
     # ========================================
+    # Benign Traffic Tests
+    # ========================================
+    
+    def test_benign_browsing(self):
+        """Test 9: Benign browsing - normal legitimate page access"""
+        print("\n" + "="*70)
+        print("TEST 9: Benign Browsing Activity")
+        print("Expected: Both IDS ❌ (No alerts)")
+        print("="*70)
+        
+        benign_urls = [
+            f"{self.base_url}/",
+            f"{self.base_url}/about.php",
+            f"{self.base_url}/instructions.php",
+            f"{self.base_url}/security.php",
+            f"{self.base_url}/phpinfo.php",
+        ]
+        
+        print("[*] Simulating normal user browsing...")
+        successful = 0
+        for url in benign_urls:
+            try:
+                response = self.session.get(url, timeout=3)
+                if response.status_code == 200:
+                    successful += 1
+                    print(f"  ✓ Browsed: {url.split('/')[-1]}")
+                time.sleep(1)  # Normal user behavior
+            except:
+                pass
+        
+        print(f"  ✓ Completed {successful}/{len(benign_urls)} page views")
+        self.results['benign_browsing'] = {'total': len(benign_urls), 'success': successful}
+
+    def test_benign_login(self):
+        """Test 10: Benign login - normal authentication attempts"""
+        print("\n" + "="*70)
+        print("TEST 10: Benign Login Activity")
+        print("Expected: Both IDS ❌ (No alerts)")
+        print("="*70)
+        
+        login_url = f"{self.base_url}/login.php"
+        credentials = [
+            ('admin', 'password'),  # correct
+            ('user', 'user123'),    # trying different account
+        ]
+        
+        print("[*] Performing normal login attempts...")
+        successful = 0
+        for username, password in credentials:
+            try:
+                response = self.session.post(
+                    login_url,
+                    data={'username': username, 'password': password, 'Login': 'Login'},
+                    timeout=3
+                )
+                successful += 1
+                print(f"  ✓ Login attempt: {username}")
+                time.sleep(3)  # Normal delay between attempts
+            except:
+                pass
+        
+        print(f"  ✓ Completed {successful}/{len(credentials)} login attempts")
+        self.results['benign_login'] = {'total': len(credentials), 'success': successful}
+
+    def test_benign_search(self):
+        """Test 11: Benign search - legitimate search queries"""
+        print("\n" + "="*70)
+        print("TEST 11: Benign Search Activity")
+        print("Expected: Both IDS ❌ (No alerts)")
+        print("="*70)
+        
+        search_queries = [
+            "documentation",
+            "help guide",
+            "tutorial",
+            "user manual",
+        ]
+        
+        print("[*] Performing legitimate searches...")
+        successful = 0
+        for query in search_queries:
+            try:
+                search_url = f"{self.base_url}/vulnerabilities/xss_r/?name={requests.utils.quote(query)}"
+                response = self.session.get(search_url, timeout=3)
+                if response.status_code == 200:
+                    successful += 1
+                    print(f"  ✓ Searched: '{query}'")
+                time.sleep(1)
+            except:
+                pass
+        
+        print(f"  ✓ Completed {successful}/{len(search_queries)} searches")
+        self.results['benign_search'] = {'total': len(search_queries), 'success': successful}
+
+    def test_benign_file_access(self):
+        """Test 12: Benign file access - normal resource loading"""
+        print("\n" + "="*70)
+        print("TEST 12: Benign File Access")
+        print("Expected: Both IDS ❌ (No alerts)")
+        print("="*70)
+        
+        file_urls = [
+            f"{self.base_url}/dvwa/css/main.css",
+            f"{self.base_url}/dvwa/images/logo.png",
+            f"{self.base_url}/favicon.ico",
+        ]
+        
+        print("[*] Accessing normal static resources...")
+        successful = 0
+        for url in file_urls:
+            try:
+                response = self.session.get(url, timeout=3)
+                if response.status_code in [200, 304]:
+                    successful += 1
+                    print(f"  ✓ Loaded: {url.split('/')[-1]}")
+                time.sleep(0.5)
+            except:
+                pass
+        
+        print(f"  ✓ Completed {successful}/{len(file_urls)} file accesses")
+        self.results['benign_file_access'] = {'total': len(file_urls), 'success': successful}
+
+    def test_benign_api_calls(self):
+        """Test 13: Benign API calls - legitimate data requests"""
+        print("\n" + "="*70)
+        print("TEST 13: Benign API Activity")
+        print("Expected: Both IDS ❌ (No alerts)")
+        print("="*70)
+        
+        api_endpoints = [
+            f"{self.base_url}/security.php",
+            f"{self.base_url}/setup.php",
+            f"{self.base_url}/vulnerabilities/captcha/",
+        ]
+        
+        print("[*] Making legitimate API calls...")
+        successful = 0
+        for url in api_endpoints:
+            try:
+                response = self.session.get(url, timeout=3)
+                if response.status_code in [200, 302]:
+                    successful += 1
+                    print(f"  ✓ API call: {url.split('/')[-2]}")
+                time.sleep(1)
+            except:
+                pass
+        
+        print(f"  ✓ Completed {successful}/{len(api_endpoints)} API calls")
+        self.results['benign_api_calls'] = {'total': len(api_endpoints), 'success': successful}
+    
+    # ========================================
     # Main Execution
     # ========================================
     
@@ -391,37 +542,66 @@ class ComprehensiveAttackSuite:
         print("ATTACK SUITE SUMMARY")
         print("="*70)
         
-        for test, data in self.results.items():
-            print(f"\n{test.upper().replace('_', ' ')}:")
-            for key, value in data.items():
-                print(f"  {key}: {value}")
+        # Separate malicious and benign tests
+        malicious_tests = ['basic_sqli', 'obfuscated_sqli', 'command_injection', 
+                          'port_scan', 'brute_force', 'xss', 'file_inclusion', 
+                          'slowloris', 'http_flood']
+        benign_tests = ['benign_browsing', 'benign_login', 'benign_search', 
+                       'benign_file_access', 'benign_api_calls']
+        
+        print("\n📛 MALICIOUS TRAFFIC:")
+        for test in malicious_tests:
+            if test in self.results:
+                data = self.results[test]
+                print(f"  {test.replace('_', ' ').title()}: {data}")
+        
+        print("\n✅ BENIGN TRAFFIC:")
+        for test in benign_tests:
+            if test in self.results:
+                data = self.results[test]
+                print(f"  {test.replace('_', ' ').title()}: {data}")
         
         print("\n" + "="*70)
         print("CHECK THE DASHBOARD TO COMPARE DETECTION RATES!")
         print("="*70)
         print("\nExpected Results:")
-        print("✓ Both Detect: SQLi (basic), Command Injection, Port Scan, Brute Force, XSS, File Inclusion")
-        print("✓ ML Advantage: SQLi (obfuscated), Slowloris, HTTP Flood")
+        print("✓ Malicious (Both Detect): SQLi (basic), Command Injection, Port Scan, Brute Force, XSS, File Inclusion")
+        print("✓ Malicious (ML Advantage): SQLi (obfuscated), Slowloris, HTTP Flood")
+        print("✓ Benign (Both Ignore): All benign traffic should NOT trigger alerts")
         print("\n")
     
     def run_all_attacks(self):
-        """Execute all attack tests"""
+        """Execute all attack tests with mixed benign traffic"""
         print("\n" + "="*70)
-        print("COMPREHENSIVE ATTACK SUITE")
+        print("COMPREHENSIVE ATTACK SUITE WITH BENIGN TRAFFIC")
         print(f"Target: {self.base_url}")
         print("="*70)
         
-        # Run all tests
+        # Mix malicious and benign traffic for realistic testing
+        print("\n🎯 PHASE 1: Malicious Attacks")
         self.test_basic_sqli()
+        time.sleep(2)
+        
+        # Benign traffic between attacks
+        self.test_benign_browsing()
         time.sleep(2)
         
         self.test_obfuscated_sqli()
         time.sleep(2)
         
+        self.test_benign_login()
+        time.sleep(2)
+        
         self.test_command_injection()
         time.sleep(2)
         
+        self.test_benign_search()
+        time.sleep(2)
+        
         self.test_port_scan()
+        time.sleep(2)
+        
+        self.test_benign_file_access()
         time.sleep(2)
         
         self.test_brute_force()
@@ -430,9 +610,13 @@ class ComprehensiveAttackSuite:
         self.test_xss()
         time.sleep(2)
         
+        self.test_benign_api_calls()
+        time.sleep(2)
+        
         self.test_file_inclusion()
         time.sleep(2)
         
+        print("\n🎯 PHASE 2: DoS Attacks")
         self.test_slowloris()
         time.sleep(2)
         
