@@ -1,9 +1,4 @@
-# Don't ignore anything in ml-ids directory
-!ml_ids.py
-!requirements.txt
-!Dockerfile
-
-# Only exclude common unnecessary files
+# Exclude unnecessary files
 .git
 .gitignore
 __pycache__
@@ -18,3 +13,6 @@ dist
 build
 .venv
 venv
+*.md
+.vscode
+.DS_Store

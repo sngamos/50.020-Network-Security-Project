@@ -1,12 +1,10 @@
-# Don't ignore necessary files
-!suricata.yaml
-!custom.rules
-!Dockerfile
-
-# Only exclude common unnecessary files
+# Exclude unnecessary files
 .git
 .gitignore
 __pycache__
 *.pyc
 .venv
 venv
+*.md
+.vscode
+.DS_Store
