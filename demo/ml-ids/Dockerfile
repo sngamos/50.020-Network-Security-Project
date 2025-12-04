@@ -157,7 +157,12 @@ sleep 1\n\
 rm -f /var/run/mysqld/mysqld.sock /var/run/mysqld/mysqld.pid\n\
 \n\
 # Create required directories for supervisor and Apache\n\
-mkdir -p /var/log/supervisor /var/run /var/run/apache2 /var/lock/apache2\n\
+mkdir -p /var/log/supervisor /var/run /var/run/apache2 /var/lock/apache2 /var/log/apache2\n\
+chown -R www-data:www-data /var/run/apache2 /var/lock/apache2 /var/log/apache2\n\
+\n\
+# Verify directories were created\n\
+echo \"Checking directories...\"\n\
+ls -la /var/run/apache2 /var/lock/apache2\n\
 \n\
 # Verify supervisor config exists\n\
 if [ ! -f /etc/supervisor/conf.d/supervisord.conf ]; then\n\
