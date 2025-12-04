@@ -91,6 +91,10 @@ stderr_logfile=/var/log/ml-ids-stderr.log\n\
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
+echo "========================================"\n\
+echo "Starting ML-IDS Container"\n\
+echo "========================================"\n\
+\n\
 # Check if model file exists\n\
 if [ ! -f /app/models/model.pkl ]; then\n\
     echo "WARNING: Model file not found at /app/models/model.pkl"\n\
@@ -105,25 +109,24 @@ if [ ! -d "/var/lib/mysql/mysql" ]; then\n\
     mysql_install_db --user=mysql --datadir=/var/lib/mysql\n\
 fi\n\
 \n\
-# Start MySQL directly\n\
-echo "Starting MySQL..."\n\
-mysqld_safe --user=mysql &\n\
+# Start MySQL temporarily to create database\n\
+echo "Starting MySQL for initial setup..."\n\
+mysqld --user=mysql --skip-networking &\n\
 MYSQL_PID=$!\n\
 \n\
 # Wait for MySQL to be ready\n\
-echo "Waiting for MySQL to be ready..."\n\
+echo "Waiting for MySQL..."\n\
 for i in {1..30}; do\n\
-    if mysqladmin ping -u root --silent 2>/dev/null; then\n\
+    if mysqladmin ping --socket=/var/run/mysqld/mysqld.sock 2>/dev/null; then\n\
         echo "MySQL is ready"\n\
         break\n\
     fi\n\
-    echo "Waiting for MySQL... ($i/30)"\n\
     sleep 1\n\
 done\n\
 \n\
 # Setup DVWA database\n\
 echo "Setting up DVWA database..."\n\
-mysql -u root << EOF\n\
+mysql --socket=/var/run/mysqld/mysqld.sock -u root <<EOF\n\
 CREATE DATABASE IF NOT EXISTS dvwa;\n\
 CREATE USER IF NOT EXISTS '"'"'dvwa'"'"'@'"'"'localhost'"'"' IDENTIFIED BY '"'"'password'"'"';\n\
 GRANT ALL PRIVILEGES ON dvwa.* TO '"'"'dvwa'"'"'@'"'"'localhost'"'"';\n\
@@ -132,14 +135,15 @@ EOF\n\
 \n\
 echo "Database setup complete"\n\
 \n\
-# Kill the temporary MySQL process\n\
-kill $MYSQL_PID\n\
-wait $MYSQL_PID 2>/dev/null || true\n\
-sleep 2\n\
+# Shutdown temporary MySQL\n\
+echo "Stopping temporary MySQL..."\n\
+mysqladmin --socket=/var/run/mysqld/mysqld.sock shutdown 2>/dev/null || kill $MYSQL_PID\n\
+sleep 3\n\
 \n\
-# Start supervisor to manage all services\n\
-echo "Starting supervisor..."\n\
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
+# Start all services with supervisor\n\
+echo "Starting all services via supervisor..."\n\
+echo "========================================"\n\
+exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf\n\
 ' > /start.sh && chmod +x /start.sh
 
 EXPOSE 80
