@@ -5,6 +5,7 @@
 *.pkl
 model/*.pkl
 *.zip
+!xg_model.pkl
 
 
 # Python cache
