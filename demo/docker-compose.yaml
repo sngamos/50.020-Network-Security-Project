@@ -55,7 +55,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./shared/logs:/shared/logs:ro
+      - ./shared/logs:/shared/logs:rw
     depends_on:
       - suricata-ids
       - ml-ids
