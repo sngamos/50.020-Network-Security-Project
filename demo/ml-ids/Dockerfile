@@ -156,8 +156,8 @@ sleep 1\n\
 # Clean up MySQL socket\n\
 rm -f /var/run/mysqld/mysqld.sock /var/run/mysqld/mysqld.pid\n\
 \n\
-# Create required directories for supervisor\n\
-mkdir -p /var/log/supervisor /var/run\n\
+# Create required directories for supervisor and Apache\n\
+mkdir -p /var/log/supervisor /var/run /var/run/apache2 /var/lock/apache2\n\
 \n\
 # Verify supervisor config exists\n\
 if [ ! -f /etc/supervisor/conf.d/supervisord.conf ]; then\n\
