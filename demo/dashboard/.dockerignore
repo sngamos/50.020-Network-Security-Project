@@ -1,0 +1,13 @@
+# Don't ignore necessary files
+!dashboard.py
+!requirements.txt
+!config/
+!Dockerfile
+
+# Only exclude common unnecessary files
+.git
+.gitignore
+__pycache__
+*.pyc
+.venv
+venv

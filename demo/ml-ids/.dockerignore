@@ -1,0 +1,20 @@
+# Don't ignore anything in ml-ids directory
+!ml_ids.py
+!requirements.txt
+!Dockerfile
+
+# Only exclude common unnecessary files
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
