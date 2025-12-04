@@ -137,12 +137,40 @@ echo "Database setup complete"\n\
 \n\
 # Shutdown temporary MySQL\n\
 echo "Stopping temporary MySQL..."\n\
-mysqladmin --socket=/var/run/mysqld/mysqld.sock shutdown 2>/dev/null || kill $MYSQL_PID\n\
-sleep 3\n\
+mysqladmin --socket=/var/run/mysqld/mysqld.sock shutdown 2>/dev/null || kill -TERM $MYSQL_PID\n\
+sleep 2\n\
+\n\
+# Wait for MySQL to fully stop\n\
+for i in {1..10}; do\n\
+    if ! ps -p $MYSQL_PID > /dev/null 2>&1; then\n\
+        echo "MySQL stopped successfully"\n\
+        break\n\
+    fi\n\
+    sleep 1\n\
+done\n\
+\n\
+# Force kill if still running\n\
+kill -9 $MYSQL_PID 2>/dev/null || true\n\
+sleep 1\n\
+\n\
+# Clean up MySQL socket\n\
+rm -f /var/run/mysqld/mysqld.sock /var/run/mysqld/mysqld.pid\n\
+\n\
+# Create required directories for supervisor\n\
+mkdir -p /var/log/supervisor /var/run\n\
+\n\
+# Verify supervisor config exists\n\
+if [ ! -f /etc/supervisor/conf.d/supervisord.conf ]; then\n\
+    echo \"ERROR: Supervisor config not found!\"\n\
+    ls -la /etc/supervisor/conf.d/\n\
+    exit 1\n\
+fi\n\
+\n\
+echo \"Supervisor config found, directories created\"\n\
 \n\
 # Start all services with supervisor\n\
-echo "Starting all services via supervisor..."\n\
-echo "========================================"\n\
+echo \"Starting all services via supervisor...\"\n\
+echo \"========================================\"\n\
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf\n\
 ' > /start.sh && chmod +x /start.sh
 
