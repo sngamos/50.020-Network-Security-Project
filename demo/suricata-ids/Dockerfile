@@ -168,6 +168,17 @@ if [ $? -ne 0 ]; then\n\
 fi\n\
 echo "Suricata configuration OK"\n\
 \n\
+# Display loaded rules for verification\n\
+echo "Verifying custom rules are present..."\n\
+if [ -f /etc/suricata/rules/custom.rules ]; then\n\
+    echo "Custom rules file found:"\n\
+    wc -l /etc/suricata/rules/custom.rules\n\
+    echo "Sample rules:"\n\
+    head -3 /etc/suricata/rules/custom.rules\n\
+else\n\
+    echo "WARNING: custom.rules not found!"\n\
+fi\n\
+\n\
 # Create required directories for supervisor and Apache\n\
 mkdir -p /var/log/supervisor /var/run /var/run/apache2 /var/lock/apache2 /var/log/apache2\n\
 chown -R www-data:www-data /var/run/apache2 /var/lock/apache2 /var/log/apache2\n\
