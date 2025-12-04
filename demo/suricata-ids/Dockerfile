@@ -2,9 +2,11 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
+# Install system dependencies and add Suricata PPA for version 8.0
 RUN apt-get update && apt-get install -y \
     software-properties-common \
+    && add-apt-repository ppa:oisf/suricata-stable \
+    && apt-get update && apt-get install -y \
     suricata \
     apache2 \
     php \
@@ -20,6 +22,9 @@ RUN apt-get update && apt-get install -y \
     vim \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
+
+# Verify Suricata version (should be 8.0+)
+RUN suricata --version
 
 # Clone DVWA
 WORKDIR /var/www/html
@@ -44,15 +49,19 @@ RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
 # Create Suricata directories
 RUN mkdir -p /var/log/suricata /etc/suricata/rules
 
-# Copy custom rules file
+# Copy your custom rules file
 COPY suricata-config/custom.rules /etc/suricata/rules/custom.rules
 
-# Copy Suricata configuration
+# Copy your Suricata 8.0 configuration
 COPY suricata-config/suricata.yaml /etc/suricata/suricata.yaml
 
 # Set proper permissions
 RUN chmod 644 /etc/suricata/rules/custom.rules && \
     chmod 644 /etc/suricata/suricata.yaml
+
+# Verify Suricata configuration
+RUN suricata -T -c /etc/suricata/suricata.yaml || \
+    (echo "Suricata configuration test failed!" && cat /var/log/suricata/suricata.log && exit 1)
 
 # Create supervisor config
 RUN echo '[supervisord]\n\
@@ -84,6 +93,9 @@ stderr_logfile=/var/log/suricata-stderr.log\n\
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
+echo "Starting Suricata IDS Container..."\n\
+echo "Suricata version: $(suricata --version)"\n\
+\n\
 # Start MySQL and wait for it to be ready\n\
 service mysql start\n\
 sleep 10\n\
@@ -96,11 +108,13 @@ GRANT ALL PRIVILEGES ON dvwa.* TO "dvwa"@"localhost";\n\
 FLUSH PRIVILEGES;\n\
 EOF\n\
 \n\
+echo "MySQL database created"\n\
+\n\
 # Stop MySQL (supervisor will restart it)\n\
 service mysql stop\n\
 sleep 2\n\
 \n\
-# Test Suricata configuration\n\
+# Test Suricata configuration one more time\n\
 echo "Testing Suricata configuration..."\n\
 suricata -T -c /etc/suricata/suricata.yaml\n\
 if [ $? -ne 0 ]; then\n\
@@ -111,6 +125,7 @@ fi\n\
 echo "Suricata configuration OK"\n\
 \n\
 # Start supervisor\n\
+echo "Starting services via supervisor..."\n\
 /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
 ' > /start.sh && chmod +x /start.sh
 

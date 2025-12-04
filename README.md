@@ -128,7 +128,12 @@ Find cybersecurity research paper that discusses a “network” security soluti
     - ![correct-setup-image](images/correct-setup.png)
     - The ids dashboard is running on port 8080, Suricata IDS on port 8081 and ML-IDS on port 8082.
 
+### Setting up DVWA database
+
+
+
 ### Accessing the Dashboard
 1. Open a web browser and navigate to `http://localhost:8080`.
 2. You should see the dashboard:
     - ![dashboard-landing](images/dashboard-landing.png)
+3. 
