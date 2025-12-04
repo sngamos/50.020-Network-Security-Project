@@ -5,7 +5,7 @@ echo "========================================"
 echo "DVWA Initialization Debug Script"
 echo "========================================"
 
-cd ~/netsec-project
+# No need to cd, script should be run from demo directory
 
 # Check container status
 echo -e "\n[1/8] Checking container status..."
@@ -39,14 +39,13 @@ echo -e "\n[4/8] Checking MySQL service..."
 docker exec suricata_ids pgrep mysql > /dev/null && echo "  ✓ Suricata MySQL running" || echo "  ✗ Suricata MySQL NOT running"
 docker exec ml_ids pgrep mysql > /dev/null && echo "  ✓ ML-IDS MySQL running" || echo "  ✗ ML-IDS MySQL NOT running"
 
-# Restart services if needed
-echo -e "\n[5/8] Ensuring services are running..."
-docker exec suricata_ids service apache2 status > /dev/null 2>&1 || docker exec suricata_ids service apache2 start
-docker exec suricata_ids service mysql status > /dev/null 2>&1 || docker exec suricata_ids service mysql start
-docker exec ml_ids service apache2 status > /dev/null 2>&1 || docker exec ml_ids service apache2 start
-docker exec ml_ids service mysql status > /dev/null 2>&1 || docker exec ml_ids service mysql start
+# Check if services need restart (supervisor manages them)
+echo -e "\n[5/8] Checking service health..."
+docker exec suricata_ids supervisorctl status
+echo ""
+docker exec ml_ids supervisorctl status
 
-sleep 5
+sleep 3
 
 # Create databases manually
 echo -e "\n[6/8] Creating DVWA databases..."

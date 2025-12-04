@@ -50,6 +50,15 @@ COPY ml_ids.py /opt/ml_ids.py
 # Create app directory for model (will be mounted via volume)
 RUN mkdir -p /app/models
 
+# Create required directories for logs and services
+RUN mkdir -p /var/log/supervisor /var/run/mysqld /var/log/apache2 && \
+    chown mysql:mysql /var/run/mysqld && \
+    chown www-data:www-data /var/log/apache2
+
+# Fix git ownership issues for DVWA
+RUN git config --global --add safe.directory /var/www/html/dvwa && \
+    chown -R www-data:www-data /var/www/html/dvwa
+
 # Create supervisor config
 RUN echo '[supervisord]\n\
 nodaemon=true\n\
@@ -80,6 +89,8 @@ stderr_logfile=/var/log/ml-ids-stderr.log\n\
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
 # Check if model file exists\n\
 if [ ! -f /app/models/model.pkl ]; then\n\
     echo "WARNING: Model file not found at /app/models/model.pkl"\n\
@@ -88,24 +99,47 @@ else\n\
     echo "Model file found at /app/models/model.pkl"\n\
 fi\n\
 \n\
-# Start MySQL and wait for it to be ready\n\
-service mysql start\n\
-sleep 10\n\
+# Initialize MySQL data directory if needed\n\
+if [ ! -d "/var/lib/mysql/mysql" ]; then\n\
+    echo "Initializing MySQL data directory..."\n\
+    mysql_install_db --user=mysql --datadir=/var/lib/mysql\n\
+fi\n\
+\n\
+# Start MySQL directly\n\
+echo "Starting MySQL..."\n\
+mysqld_safe --user=mysql &\n\
+MYSQL_PID=$!\n\
+\n\
+# Wait for MySQL to be ready\n\
+echo "Waiting for MySQL to be ready..."\n\
+for i in {1..30}; do\n\
+    if mysqladmin ping -u root --silent 2>/dev/null; then\n\
+        echo "MySQL is ready"\n\
+        break\n\
+    fi\n\
+    echo "Waiting for MySQL... ($i/30)"\n\
+    sleep 1\n\
+done\n\
 \n\
 # Setup DVWA database\n\
+echo "Setting up DVWA database..."\n\
 mysql -u root << EOF\n\
 CREATE DATABASE IF NOT EXISTS dvwa;\n\
-CREATE USER IF NOT EXISTS "dvwa"@"localhost" IDENTIFIED BY "password";\n\
-GRANT ALL PRIVILEGES ON dvwa.* TO "dvwa"@"localhost";\n\
+CREATE USER IF NOT EXISTS '"'"'dvwa'"'"'@'"'"'localhost'"'"' IDENTIFIED BY '"'"'password'"'"';\n\
+GRANT ALL PRIVILEGES ON dvwa.* TO '"'"'dvwa'"'"'@'"'"'localhost'"'"';\n\
 FLUSH PRIVILEGES;\n\
 EOF\n\
 \n\
-# Stop MySQL (supervisor will restart it)\n\
-service mysql stop\n\
+echo "Database setup complete"\n\
+\n\
+# Kill the temporary MySQL process\n\
+kill $MYSQL_PID\n\
+wait $MYSQL_PID 2>/dev/null || true\n\
 sleep 2\n\
 \n\
-# Start supervisor\n\
-/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
+# Start supervisor to manage all services\n\
+echo "Starting supervisor..."\n\
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
 ' > /start.sh && chmod +x /start.sh
 
 EXPOSE 80
