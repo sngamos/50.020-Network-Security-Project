@@ -1,0 +1,64 @@
+version: '3.8'
+
+networks:
+  ids-network:
+    driver: bridge
+
+services:
+  suricata-ids:
+    build: ./suricata-ids
+    container_name: suricata_ids
+    hostname: suricata
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    networks:
+      - ids-network
+    ports:
+      - "8081:80"
+    volumes:
+      - ./shared/logs:/var/log/suricata:rw
+    environment:
+      - TZ=Asia/Singapore
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  ml-ids:
+    build: ./ml-ids
+    container_name: ml_ids
+    hostname: mlids
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    networks:
+      - ids-network
+    ports:
+      - "8082:80"
+    volumes:
+      - ./shared/logs:/var/log:rw
+      - ./shared/models:/app/models:ro
+    environment:
+      - TZ=Asia/Singapore
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    container_name: ids_dashboard
+    hostname: dashboard
+    networks:
+      - ids-network
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./shared/logs:/shared/logs:ro
+    depends_on:
+      - suricata-ids
+      - ml-ids
+    environment:
+      - TZ=Asia/Singapore
+    restart: unless-stopped

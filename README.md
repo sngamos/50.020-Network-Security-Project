@@ -24,14 +24,14 @@ Find cybersecurity research paper that discusses a “network” security soluti
 │  ┌─────────────────────────┐  ┌──────────────────────┐  │
 │  │ Container 1: Suricata   │  │ Container 2: ML-IDS  │  │
 │  │ ┌─────────────────────┐ │  │ ┌──────────────────┐ │  │
-│  │ │ Vulnerable Web App  │ │  │ │ Vulnerable App   │ │  │
-│  │ │    (Flask:5000)     │ │  │ │  (Flask:5000)    │ │  │
+│  │ │       DVWA          │ │  │ │      DVWA        │ │  │
+│  │ │    (php/mySQL)      │ │  │ │  (php/mySQL)     │ │  │
 │  │ └─────────────────────┘ │  │ └──────────────────┘ │  │
 │  │ ┌─────────────────────┐ │  │ ┌──────────────────┐ │  │
 │  │ │  Suricata IDS       │ │  │ │ ML-IDS Engine    │ │  │
-│  │ │  (Signature-based)  │ │  │ │ (Random Forest)  │ │  │
+│  │ │  (Signature-based)  │ │  │ │ (xg-boost)       │ │  │
 │  │ └─────────────────────┘ │  │ └──────────────────┘ │  │
-│  │   Port: 5001            │  │    Port: 5002        │  │
+│  │   Port: 8081            │  │    Port: 8082        │  │
 │  └─────────────────────────┘  └──────────────────────┘  │
 |         |                                   |           |
 │         └────────────────────┬──────────────┘           |       

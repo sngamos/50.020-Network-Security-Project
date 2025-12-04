@@ -1,0 +1,12 @@
+#Bruteforce
+alert tcp any any -> any any (msg:"Suspicious attempts"; flags:S; threshold:type both, track by_src, count 20, seconds 30; classtype:attempted-user; sid:1000020; rev:1;)
+#TCP port scanning
+alert tcp any any -> any any (msg:"Potential TCP SYN Port Scanning Detected"; flags:S; threshold:type threshold, track by_src, count 1000, seconds 10; classtype: network-scan; sid:1000021; rev:1;)
+#Union Select SQLI
+alert http any any -> any any (msg:"Potential Union Select SQLI Detected"; content:"union"; nocase; content:"select"; nocase; distance:0; classtype:web-application-attack; sid:1000022; rev:1;)
+#Command Inject
+alert http any any -> any any (msg:"Potential Command Injection Detected";flow:established, to_server;http.uri; pcre:"/(\;|\|\||\||&&)/"; classtype:web-application-attack; sid:1000023; rev:1;)
+#trickbot trojan
+alert http any any -> any any (msg:"Potential Trickbot Trojan Activity Detected - User-Agent test";flow:established,to_server;content:"POST";http_method;content:"User-Agent: test";http_header;sid:1000024;rev:1;)
+#Media disguised as executable
+alert http any any -> any any (msg:"Potential Malware Disguised as Media File Detected -0x4d5a"; flow:established, to_client; content: "MZ"; distance:0;content:"Content-Type: image/png"; http_header; classtype:trojan-activity; sid:1000025; rev:1;)
