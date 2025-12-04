@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Verify Suricata version (should be 8.0+)
-RUN suricata --version
+RUN suricata -V
 
 # Clone DVWA
 WORKDIR /var/www/html
