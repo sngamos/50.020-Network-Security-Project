@@ -356,7 +356,14 @@ DASHBOARD_HTML = """
     <script>
         function formatTime(timestamp) {
             const date = new Date(timestamp);
-            return date.toLocaleTimeString();
+            // Format to Singapore time (Asia/Singapore timezone)
+            return date.toLocaleTimeString('en-SG', {
+                timeZone: 'Asia/Singapore',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
         }
 
         function updateStats(suricataAlerts, mlAlerts) {
