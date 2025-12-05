@@ -1,59 +1,96 @@
 # 50.020 Network Security Project
 
-## Instructions for Project
-Find cybersecurity research paper that discusses a “network” security solution using AI, implement, and demonstrate.
-
 ## Paper Selected
 - [A comparative analysis of Network Intrusion Detection (NID) using ArtificialIntelligence techniques for increase network security](https://ijsra.net/sites/default/files/IJSRA-2024-2664.pdf)
-    - [Offline pdf paper here](docs/IJSRA-2024-2664.pdf)
-
+- [Offline pdf paper here](docs/IJSRA-2024-2664.pdf)
 
 ## Demonstration Diagram
-
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Host Machine                         │
-│  ┌────────────────┐                                     │
-│  │ Attack Scripts │                                     │
-│  │  - Basic SQLi  │                                     │
-│  │  - Obfuscated  │                                     │
-│  └────────────────┘                                     │
-│         │                                               |
-│         └───────────┬──────────────┐                    │
-│                     ▼              ▼                    │
-│  ┌─────────────────────────┐  ┌──────────────────────┐  │
-│  │ Container 1: Suricata   │  │ Container 2: ML-IDS  │  │
-│  │ ┌─────────────────────┐ │  │ ┌──────────────────┐ │  │
-│  │ │       DVWA          │ │  │ │      DVWA        │ │  │
-│  │ │    (php/mySQL)      │ │  │ │  (php/mySQL)     │ │  │
-│  │ └─────────────────────┘ │  │ └──────────────────┘ │  │
-│  │ ┌─────────────────────┐ │  │ ┌──────────────────┐ │  │
-│  │ │  Suricata IDS       │ │  │ │ ML-IDS Engine    │ │  │
-│  │ │  (Signature-based)  │ │  │ │ (XGBoost)        │ │  │
-│  │ └─────────────────────┘ │  │ └──────────────────┘ │  │
-│  │   Port: 8081            │  │    Port: 8082        │  │
-│  └─────────────────────────┘  └──────────────────────┘  │
-|         |                                   |           |
-│         └────────────────────┬──────────────┘           |       
-│                              ▼                          |
-│                    ┌──────────────────┐                 │
-│                    │   Dashboard      │                 │
-│                    │   (Port 8080)    │                 │
-│                    └──────────────────┘                 |
-|                                                         |      
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                          Host Machine                               │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │ Comprehensive Attack Suite (attack_suite.py)                 │   │
+│  │                                                              │   │
+│  │ Malicious Tests (8):                                         │   │
+│  │  • Basic SQL Injection         • Command Injection           │   │
+│  │  • Obfuscated SQL Injection    • Port Scan                   │   │
+│  │  • Cross-Site Scripting (XSS)  • Brute Force                 │   │
+│  │  • File Inclusion              • Slowloris DoS               │   │
+│  │  • HTTP Flood                                                │   │
+│  │                                                              │   │
+│  │ Benign Tests (5):                                            │   │
+│  │  • Normal Browsing    • Legitimate Login                     │   │
+│  │  • Search Queries     • File Access                          │   │
+│  │  • API Calls                                                 │   │
+│  │                                                              │   │
+│  │ Usage: python3 attack_suite.py localhost:8081 localhost:8082 │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│         │                                                           │
+│         └────────────────┬───────────────────┐                      │
+│                          ▼                   ▼                      │
+│  ┌─────────────────────────────┐  ┌──────────────────────────┐      │
+│  │ Container 1: Suricata IDS   │  │ Container 2: ML-IDS      │      │
+│  │ ┌─────────────────────────┐ │  │ ┌──────────────────────┐ │      │
+│  │ │       DVWA              │ │  │ │      DVWA            │ │      │
+│  │ │    (PHP/MySQL)          │ │  │ │  (PHP/MySQL)         │ │      │
+│  │ └─────────────────────────┘ │  │ └──────────────────────┘ │      │
+│  │ ┌─────────────────────────┐ │  │ ┌──────────────────────┐ │      │
+│  │ │  Suricata 8.0           │ │  │ │ ML-IDS Engine        │ │      │
+│  │ │  • 6 Custom Rules       │ │  │ │ • XGBoost Model      │ │      │
+│  │ │  • Signature Detection  │ │  │ │ • Pattern Detection  │ │      │
+│  │ │  • eve.json Output      │ │  │ │ • JSON Alerts        │ │      │
+│  │ └─────────────────────────┘ │  │ └──────────────────────┘ │      │
+│  │   Port: 8081 (DVWA)         │  │    Port: 8082 (DVWA)     │      │
+│  │   Logs: /shared/logs/       │  │    Logs: /shared/logs/   │      │
+│  └─────────────────────────────┘  └──────────────────────────┘      │
+│         │                                   │                       │
+│         └────────────────────┬──────────────┘                       │       
+│                              ▼                                      │
+│                    ┌──────────────────────┐                         │
+│                    │   Flask Dashboard    │                         │
+│                    │   • Real-time View   │                         │
+│                    │   • Dark Mode UI     │                         │
+│                    │   • Comparison Bars  │                         │
+│                    │   • Singapore Time   │                         │
+│                    │   • Clear Logs API   │                         │
+│                    │   Port: 8080         │                         │
+│                    └──────────────────────┘                         │
+│                                                                     │      
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Demonstration methodology
-1. Rules to detect simple SQL injection attacks using Suricata IDS.
-2. Hopefully, suricata IDS will be able to detect basic SQL injection attacks based on the rules defined since the signatures are well known and can be matched easily.
-3. Then we run an obfuscated SQL injection attack that uses techniques such as encoding, comments, and whitespace variations to evade detection.
-4. Suricata IDS is expected to miss the obfuscated SQL injection attacks since the signatures are altered and do not match the predefined rules.
-5. The ML-based IDS (XGBoost model) is expected to detect both basic and obfuscated SQL injection attacks since it learns patterns and behaviors associated with SQL injection attacks, rather than relying solely on predefined signatures.
-6. Finally, we compare the detection rates and false positives between Suricata IDS and the ML-based IDS to evaluate their effectiveness in detecting SQL injection attacks.
+### Demonstration Methodology
+**Dual-Target Testing Approach:**
+1. The attack suite simultaneously targets both IDS systems (Suricata on port 8081 and ML-IDS on port 8082) running identical DVWA instances.
+2. Each attack is executed against both systems in real-time, allowing for direct comparison of detection capabilities.
 
-## Training and Testing Results from models
-### Random Forest - top_k_features=20:
+**Attack Categories:**
+
+**A. Signature-Based Detection Tests**
+- Basic SQL Injection (UNION SELECT patterns)
+- Command Injection (shell metacharacters)
+- Port Scanning (rapid SYN packets)
+- Brute Force (rapid login attempts)
+- XSS attacks (script tags and event handlers)
+- File Inclusion (directory traversal patterns)
+
+**B. Evasion Technique Tests**
+- Obfuscated SQL Injection using URL encoding, comment insertion, whitespace manipulation, and case variation
+- Slowloris DoS (slow HTTP connections)
+- HTTP Flood (rapid legitimate-looking requests)
+
+**C. Benign Traffic Baseline**
+- Normal web browsing, legitimate logins, search queries, file access, and API calls
+- Used to evaluate false positive rates
+
+**Expected Outcomes:**
+- Suricata excels at detecting known attack signatures with low false positives
+- ML-IDS (XGBoost) demonstrates superior detection of obfuscated attacks and novel patterns
+- Dashboard provides real-time visual comparison of both systems' performance
+- Benign traffic tests validate low false positive rates for both systems
+
+### Training and Testing Results from models
+**Random Forest - top_k_features=20:**
 - ```
     Accuracy:  0.9979550142811806
     Precision: 0.9091980162329223
@@ -61,21 +98,21 @@ Find cybersecurity research paper that discusses a “network” security soluti
     F1 Score:  0.8803905796034613
     ```
 
-### Random Forest - top_k_features=30:
+**Random Forest - top_k_features=30:**
 - ```
     Accuracy:  0.9979907172326246
     Precision: 0.8943574123921240
     Recall:    0.8732284279514898
     F1 Score:  0.8701581930169169
     ```
-### XGBoost - top_k_features=20:
+**XGBoost - top_k_features=20:**
 - ```
     Accuracy:  0.9978717073944780
     Precision: 0.8632622623490404
     Recall:    0.8921039437487060
     F1 Score:  0.8677380657296273
     ```
-### XGBoost - top_k_feature=30:
+**XGBoost - top_k_features=30:**
 - ```
     Accuracy:  0.9979490637892733
     Precision: 0.8794418469289690
@@ -85,7 +122,7 @@ Find cybersecurity research paper that discusses a “network” security soluti
 
 ## Setup Instructions for Demonstration Environment
 ### Prerequisites
-1. Docker installed on you machine, along with Docker Compose.
+1. Docker installed on you machine, along with docker-compose.
 2. We tested this setup on a x86_64 ubuntu 20.04 virtual box VM.
     - We used the ubuntu 20.04 image provided by SEED-Labs for simplicity.
     - Ensure that you do a `sudo apt update && sudo apt upgrade -y` after setting up the VM to get the latest packages.
@@ -128,12 +165,22 @@ Find cybersecurity research paper that discusses a “network” security soluti
     - ![correct-setup-image](images/correct-setup.png)
     - The ids dashboard is running on port 8080, Suricata IDS on port 8081 and ML-IDS on port 8082.
 
-### Setting up DVWA database
-
-
-
 ### Accessing the Dashboard
 1. Open a web browser and navigate to `http://localhost:8080`.
 2. You should see the dashboard:
     - ![dashboard-landing](images/dashboard-landing.png)
-3. 
+
+### Running the Attack Suite
+1. Open a terminal and navigate to the `demo/attacks` directory.
+2. Install the required Python packages:
+    - ```
+        pip install -r requirements.txt
+        ```
+3. Run the attack suite targeting both IDS systems:
+    - ```
+        python attack_suite.py localhost:8081 localhost:8082
+        ```
+4. The attack suite will execute a series of malicious and benign tests against both IDS systems and print the results to the console.
+5. Monitor the dashboard in real-time to observe detection rates and alerts generated by each IDS system.
+    - ![dashboard-stats](images/dashboard-stats.png)
+    - You should see something like this
