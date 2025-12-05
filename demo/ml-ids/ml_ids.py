@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from scapy.all import sniff, IP, TCP, UDP, Raw
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import json
 import sys
 import os
@@ -248,7 +249,7 @@ class MLIDS:
     def generate_alert(self, packet, alert_type, details, confidence=None, severity='medium'):
         """Generate and save alert"""
         alert = {
-            'timestamp': datetime.now().isoformat(),
+            'timestamp': datetime.now(ZoneInfo('Asia/Singapore')).isoformat(),
             'alert_type': alert_type,
             'severity': severity,
             'src_ip': packet[IP].src if IP in packet else 'unknown',
