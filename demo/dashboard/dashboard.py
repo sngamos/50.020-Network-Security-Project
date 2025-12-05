@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Paths to log files (will be mounted from containers)
-SURICATA_LOG = '/shared/logs/suricata_eve.json'
+SURICATA_LOG = '/shared/logs/eve.json'
 ML_IDS_LOG = '/shared/logs/ml_ids_alerts.json'
 
 DASHBOARD_HTML = """
@@ -502,15 +502,20 @@ def get_alerts():
     if os.path.exists(SURICATA_LOG):
         try:
             with open(SURICATA_LOG, 'r') as f:
+                line_num = 0
                 for line in f:
+                    line_num += 1
                     try:
                         event = json.loads(line)
                         if event.get('event_type') == 'alert':
                             suricata_alerts.append(event)
-                    except:
-                        pass
+                    except Exception as parse_error:
+                        if line_num <= 5:  # Only log first few errors to avoid spam
+                            print(f"Error parsing Suricata line {line_num}: {parse_error}")
         except Exception as e:
             print(f"Error reading Suricata log: {e}")
+    else:
+        print(f"Suricata log not found at: {SURICATA_LOG}")
     
     # Read ML alerts
     if os.path.exists(ML_IDS_LOG):
