@@ -281,18 +281,6 @@ DASHBOARD_HTML = """
                 <span class="stat-label">Total Alerts</span>
                 <span class="stat-value" id="suricata-total">0</span>
             </div>
-            <div class="stat-row">
-                <span class="stat-label">Unique Source IPs</span>
-                <span class="stat-value" id="suricata-ips">0</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Avg Response Time</span>
-                <span class="stat-value" id="suricata-response">0ms</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Detection Rate</span>
-                <span class="stat-value" id="suricata-rate">0%</span>
-            </div>
         </div>
 
         <div class="stats-panel ml-panel">
@@ -303,18 +291,6 @@ DASHBOARD_HTML = """
             <div class="stat-row">
                 <span class="stat-label">Total Alerts</span>
                 <span class="stat-value" id="ml-total">0</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Unique Source IPs</span>
-                <span class="stat-value" id="ml-ips">0</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Avg Confidence</span>
-                <span class="stat-value" id="ml-confidence">0%</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Detection Rate</span>
-                <span class="stat-value" id="ml-rate">0%</span>
             </div>
         </div>
     </div>
@@ -379,31 +355,9 @@ DASHBOARD_HTML = """
             const suricataTotal = suricataAlerts.length;
             const mlTotal = mlAlerts.length;
 
-            // Count unique source IPs
-            const suricataIPs = new Set(suricataAlerts.map(a => a.src_ip)).size;
-            const mlIPs = new Set(mlAlerts.map(a => a.src_ip)).size;
-
-            // Calculate average confidence for ML alerts
-            const avgConfidence = mlAlerts.length > 0 
-                ? (mlAlerts.reduce((sum, a) => sum + (a.confidence || 0), 0) / mlAlerts.length * 100).toFixed(1)
-                : 0;
-
             // Update displays
             document.getElementById('suricata-total').textContent = suricataTotal;
-            document.getElementById('suricata-ips').textContent = suricataIPs;
-            document.getElementById('suricata-response').textContent = '< 10ms';
-            
             document.getElementById('ml-total').textContent = mlTotal;
-            document.getElementById('ml-ips').textContent = mlIPs;
-            document.getElementById('ml-confidence').textContent = avgConfidence + '%';
-
-            // Calculate detection rates (baseline: total malicious attacks in suite)
-            const totalAttacks = 50; // Approximate from attack suite
-            const suricataRate = ((suricataTotal / totalAttacks) * 100).toFixed(1);
-            const mlRate = ((mlTotal / totalAttacks) * 100).toFixed(1);
-
-            document.getElementById('suricata-rate').textContent = suricataRate + '%';
-            document.getElementById('ml-rate').textContent = mlRate + '%';
 
             // Update comparison bars - Total Detections
             const maxValue = Math.max(suricataTotal, mlTotal, 1);
@@ -417,6 +371,8 @@ DASHBOARD_HTML = """
             document.getElementById('bar-total-ml-text').textContent = mlTotal;
 
             // Update comparison bars - Unique Threats
+            const suricataIPs = new Set(suricataAlerts.map(a => a.src_ip)).size;
+            const mlIPs = new Set(mlAlerts.map(a => a.src_ip)).size;
             const maxUnique = Math.max(suricataIPs, mlIPs, 1);
             const suricataPercentUnique = (suricataIPs / maxUnique * 100);
             const mlPercentUnique = (mlIPs / maxUnique * 100);

