@@ -49,9 +49,7 @@
 │                    ┌──────────────────────┐                         │
 │                    │   Flask Dashboard    │                         │
 │                    │   • Real-time View   │                         │
-│                    │   • Dark Mode UI     │                         │
 │                    │   • Comparison Bars  │                         │
-│                    │   • Singapore Time   │                         │
 │                    │   • Clear Logs API   │                         │
 │                    │   Port: 8080         │                         │
 │                    └──────────────────────┘                         │
@@ -86,8 +84,6 @@
 **Expected Outcomes:**
 - Suricata excels at detecting known attack signatures with low false positives
 - ML-IDS (XGBoost) demonstrates superior detection of obfuscated attacks and novel patterns
-- Dashboard provides real-time visual comparison of both systems' performance
-- Benign traffic tests validate low false positive rates for both systems
 
 ### Training and Testing Results from models
 **Random Forest - top_k_features=20:**
