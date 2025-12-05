@@ -33,12 +33,11 @@ DASHBOARD_HTML = """
             border-radius: 15px;
             margin-bottom: 30px;
             border: 2px solid #00ff00;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         .header h1 {
             font-size: 3em;
             color: #00ff00;
-            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
             margin-bottom: 10px;
         }
         .header .subtitle {
@@ -60,11 +59,11 @@ DASHBOARD_HTML = """
         }
         .suricata-panel {
             border-color: #ff6b6b;
-            box-shadow: 0 0 20px rgba(255, 107, 107, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         .ml-panel {
             border-color: #4ecdc4;
-            box-shadow: 0 0 20px rgba(78, 205, 196, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         .panel-header {
             font-size: 1.8em;
@@ -111,7 +110,7 @@ DASHBOARD_HTML = """
             padding: 30px;
             border-radius: 15px;
             border: 2px solid #ffd93d;
-            box-shadow: 0 0 20px rgba(255, 217, 61, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             margin-bottom: 30px;
         }
         .comparison-section h2 {
@@ -240,11 +239,11 @@ DASHBOARD_HTML = """
             font-weight: bold;
             margin: 0 10px;
             transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.3);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 255, 0, 0.4);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
         .winner-badge {
             display: inline-block;
@@ -259,7 +258,7 @@ DASHBOARD_HTML = """
 </head>
 <body>
     <div class="header">
-        <h1>🛡️ IDS COMPARISON DASHBOARD</h1>
+        <h1>IDS COMPARISON DASHBOARD</h1>
         <div class="subtitle">XGBoost ML-IDS vs Suricata Signature-Based IDS</div>
         <div class="subtitle" style="font-size: 0.9em; margin-top: 10px; color: #888;">
             Network Security Project - Intrusion Detection System Performance Analysis
@@ -267,14 +266,14 @@ DASHBOARD_HTML = """
     </div>
 
     <div class="controls">
-        <button onclick="refreshData()">🔄 Refresh Data</button>
-        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        <button onclick="refreshData()">Refresh Data</button>
+        <button onclick="clearLogs()">Clear Logs</button>
     </div>
 
     <div class="comparison-grid">
         <div class="stats-panel suricata-panel">
             <div class="panel-header">
-                <span>📋 Suricata IDS</span>
+                <span>Suricata IDS</span>
                 <span style="font-size: 0.6em; color: #888;">(Signature-Based)</span>
             </div>
             <div class="stat-row">
@@ -285,7 +284,7 @@ DASHBOARD_HTML = """
 
         <div class="stats-panel ml-panel">
             <div class="panel-header">
-                <span>🤖 XGBoost ML-IDS</span>
+                <span>XGBoost ML-IDS</span>
                 <span style="font-size: 0.6em; color: #888;">(Machine Learning)</span>
             </div>
             <div class="stat-row">
@@ -296,7 +295,7 @@ DASHBOARD_HTML = """
     </div>
 
     <div class="comparison-section">
-        <h2>📊 Detection Performance Comparison</h2>
+        <h2>Detection Performance Comparison</h2>
         <div class="comparison-bars">
             <div class="bar-container">
                 <div class="bar-label">
@@ -331,14 +330,14 @@ DASHBOARD_HTML = """
     <div class="alerts-grid">
         <div class="alerts-panel suricata-panel">
             <div class="panel-header">
-                <span>🚨 Suricata Alerts</span>
+                <span>Suricata Alerts</span>
             </div>
             <div id="suricata-alerts"></div>
         </div>
 
         <div class="alerts-panel ml-panel">
             <div class="panel-header">
-                <span>🤖 ML-IDS Alerts</span>
+                <span>ML-IDS Alerts</span>
             </div>
             <div id="ml-alerts"></div>
         </div>
