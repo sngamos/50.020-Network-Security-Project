@@ -237,7 +237,18 @@ class MLIDS:
         
         self.detector = MultiAttackDetector()
         self.alert_file = alert_file
-        self.alerts = []
+        
+        # Load existing alerts from file (if any)
+        if os.path.exists(alert_file):
+            try:
+                with open(alert_file, 'r') as f:
+                    self.alerts = json.load(f)
+                print(f"[+] Loaded {len(self.alerts)} existing alerts")
+            except Exception as e:
+                print(f"[!] Could not load existing alerts: {e}")
+                self.alerts = []
+        else:
+            self.alerts = []
         
         # Tracking
         self.packet_count = 0
