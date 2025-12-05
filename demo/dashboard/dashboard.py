@@ -20,29 +20,31 @@ DASHBOARD_HTML = """
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1e3a 100%);
-            color: #00ff00;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: #ffffff;
+            color: #000000;
             padding: 20px;
             min-height: 100vh;
         }
         .header {
             text-align: center;
             padding: 40px;
-            background: linear-gradient(135deg, #1a1e3a 0%, #2a2e4a 100%);
-            border-radius: 15px;
+            background: #000000;
+            border-radius: 8px;
             margin-bottom: 30px;
-            border: 2px solid #00ff00;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 2px solid #000000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
         .header h1 {
-            font-size: 3em;
-            color: #00ff00;
+            font-size: 2.5em;
+            color: #ffffff;
             margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
         }
         .header .subtitle {
-            color: #00ffff;
-            font-size: 1.2em;
+            color: #cccccc;
+            font-size: 1.1em;
         }
         .comparison-grid {
             display: grid;
@@ -51,54 +53,55 @@ DASHBOARD_HTML = """
             margin-bottom: 30px;
         }
         .stats-panel {
-            background: #1a1e3a;
+            background: #ffffff;
             padding: 30px;
-            border-radius: 15px;
+            border-radius: 8px;
             border: 2px solid;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .suricata-panel {
-            border-color: #ff6b6b;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border-color: #333333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .ml-panel {
-            border-color: #4ecdc4;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border-color: #666666;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .panel-header {
-            font-size: 1.8em;
+            font-size: 1.6em;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 2px solid;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            font-weight: 600;
         }
         .suricata-panel .panel-header {
-            color: #ff6b6b;
-            border-color: #ff6b6b;
+            color: #000000;
+            border-color: #000000;
         }
         .ml-panel .panel-header {
-            color: #4ecdc4;
-            border-color: #4ecdc4;
+            color: #000000;
+            border-color: #333333;
         }
         .stat-row {
             display: flex;
             justify-content: space-between;
             padding: 15px;
             margin: 10px 0;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
             border-left: 4px solid;
         }
         .suricata-panel .stat-row {
-            border-left-color: #ff6b6b;
+            border-left-color: #000000;
         }
         .ml-panel .stat-row {
-            border-left-color: #4ecdc4;
+            border-left-color: #666666;
         }
         .stat-label {
-            color: #aaa;
+            color: #666666;
             font-size: 1.1em;
         }
         .stat-value {
@@ -106,18 +109,19 @@ DASHBOARD_HTML = """
             font-weight: bold;
         }
         .comparison-section {
-            background: #1a1e3a;
+            background: #ffffff;
             padding: 30px;
-            border-radius: 15px;
-            border: 2px solid #ffd93d;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 2px solid #333333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
         }
         .comparison-section h2 {
-            color: #ffd93d;
-            font-size: 2em;
+            color: #000000;
+            font-size: 1.8em;
             margin-bottom: 20px;
             text-align: center;
+            font-weight: 600;
         }
         .comparison-bars {
             display: grid;
@@ -139,20 +143,20 @@ DASHBOARD_HTML = """
         }
         .bar {
             height: 40px;
-            border-radius: 8px;
+            border-radius: 4px;
             transition: width 0.5s ease;
             display: flex;
             align-items: center;
             padding: 0 15px;
-            font-weight: bold;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .bar-suricata {
-            background: linear-gradient(90deg, #ff6b6b 0%, #ff8787 100%);
+            background: #333333;
             color: white;
         }
         .bar-ml {
-            background: linear-gradient(90deg, #4ecdc4 0%, #6fdbcf 100%);
+            background: #666666;
             color: white;
         }
         .alerts-grid {
@@ -161,9 +165,9 @@ DASHBOARD_HTML = """
             gap: 30px;
         }
         .alerts-panel {
-            background: #1a1e3a;
+            background: #ffffff;
             padding: 25px;
-            border-radius: 15px;
+            border-radius: 8px;
             border: 2px solid;
             max-height: 600px;
             overflow-y: auto;
@@ -172,18 +176,18 @@ DASHBOARD_HTML = """
             width: 10px;
         }
         .alerts-panel::-webkit-scrollbar-track {
-            background: #0a0e27;
+            background: #f5f5f5;
             border-radius: 5px;
         }
         .alerts-panel::-webkit-scrollbar-thumb {
-            background: #00ff00;
+            background: #999999;
             border-radius: 5px;
         }
         .alert-item {
-            background: rgba(0, 0, 0, 0.4);
+            background: #f9f9f9;
             padding: 15px;
             margin: 10px 0;
-            border-radius: 8px;
+            border-radius: 4px;
             border-left: 4px solid;
             animation: slideIn 0.3s ease-out;
         }
@@ -198,30 +202,30 @@ DASHBOARD_HTML = """
             }
         }
         .suricata-alert {
-            border-left-color: #ff6b6b;
+            border-left-color: #000000;
         }
         .ml-alert {
-            border-left-color: #4ecdc4;
+            border-left-color: #666666;
         }
         .alert-time {
-            color: #888;
+            color: #666666;
             font-size: 0.9em;
             margin-bottom: 8px;
         }
         .alert-type {
             display: inline-block;
             padding: 5px 12px;
-            border-radius: 15px;
+            border-radius: 3px;
             font-size: 0.85em;
-            font-weight: bold;
+            font-weight: 600;
             margin: 5px 0;
         }
         .pattern-detection {
-            background: #ff6b6b;
+            background: #333333;
             color: white;
         }
         .ml-detection {
-            background: #4ecdc4;
+            background: #666666;
             color: white;
         }
         .controls {
@@ -229,29 +233,30 @@ DASHBOARD_HTML = """
             margin: 30px 0;
         }
         button {
-            background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
-            color: #0a0e27;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 10px;
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid #000000;
+            padding: 12px 32px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 1.1em;
-            font-weight: bold;
+            font-size: 1em;
+            font-weight: 600;
             margin: 0 10px;
-            transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: #333333;
+            border-color: #333333;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         }
         .winner-badge {
             display: inline-block;
             padding: 5px 15px;
-            background: #ffd93d;
-            color: #0a0e27;
-            border-radius: 20px;
-            font-weight: bold;
+            background: #000000;
+            color: #ffffff;
+            border-radius: 3px;
+            font-weight: 600;
             margin-left: 10px;
         }
     </style>
